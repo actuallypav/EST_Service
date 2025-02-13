@@ -3,8 +3,10 @@ from requests.auth import HTTPDigestAuth
 from requests.exceptions import ConnectionError, Timeout
 from requests.models import Response
 
+#TODO Add in mutual TLS authentication (mTLS)
+
 # set variables as to who to connect to
-url = "http://127.0.0.1:5001"
+url = "https://127.0.0.1"
 auth = HTTPDigestAuth("admin", "123abc")
 response = Response()
 response.status_code = 400 
@@ -19,7 +21,8 @@ auth = HTTPDigestAuth(username, password)
 
 try:
     # see what the response from the server is
-    response = requests.get(url, auth=auth)
+    # TODO: do no disable verification - instead create a trusted CA-signed cert and verify that way
+    response = requests.get(url, auth=auth, verify=False)
 except ConnectionError:
     print("Error: Unable to connect to the server. Is it still running?")
 except Timeout:
