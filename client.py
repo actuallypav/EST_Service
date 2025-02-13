@@ -7,6 +7,14 @@ from requests.auth import HTTPDigestAuth
 url = "http://127.0.0.1:5001"
 auth = HTTPDigestAuth("admin", "123abc")
 
+#input logic for auth
+print("Connecting to {1}", url)
+print("Enter your Username: ")
+username = input()
+print("Enter your Password: ")
+password = input()
+auth = HTTPDigestAuth(username, password)
+
 # see what the response from the server is
 response = requests.get(url, auth=auth)
 
