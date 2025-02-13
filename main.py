@@ -1,7 +1,8 @@
 from flask import Flask
 from flask_httpauth import HTTPDigestAuth
+import os
 
-
+print(os.getcwd())
 app = Flask(__name__)
 
 # TODO: investigate why i need a secret key? otherwise error 500
@@ -26,6 +27,5 @@ def get_password(username):
 def index():
     return "Authenticated"
 
-
 if __name__ == "__main__":
-    app.run(port=5001)
+    app.run(port=443, ssl_context=('certs/cert.pem', 'certs/key.pem'))
