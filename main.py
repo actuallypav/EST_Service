@@ -5,14 +5,13 @@ import os
 print(os.getcwd())
 app = Flask(__name__)
 
-# TODO: investigate why i need a secret key? otherwise error 500
 app.secret_key = "abcd1234"
 auth = HTTPDigestAuth()
 
 # TODO: store these more securely? Or use common name of a certificate instead?
 USERS = {"admin": "123abc"}
 
-
+#TODO Implement TLS with mutual authentication (server and client certificates)
 # check if the user/pass exists
 @auth.get_password
 def get_password(username):
@@ -27,5 +26,22 @@ def get_password(username):
 def index():
     return "Authenticated"
 
+print("1")
+# new endpoint to handle CSR submission
+@app.route("/enroll", methods=["POST"])
+@auth.login_required
+def enroll():
+    print(2)
+    #get raw csr
+    csr_data = request.data 
+    
+    if not csr_data:
+        return "No CSR Received", 400
+
+    #prjint today add in verification tomorrow
+    print("Receivedd CSR: ", csr_data.decode())
+    print("3")
+    return "CSR Received Successfully", 200
+
 if __name__ == "__main__":
-    app.run(port=443, ssl_context=('certs/cert.pem', 'certs/key.pem'))
+    app.run(port=443, ssl_context=('certs/cert.pem', 'certs/key.pem'),debug=True)
