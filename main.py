@@ -1,8 +1,7 @@
 from flask import Flask, request
 from flask_httpauth import HTTPDigestAuth
-import os
+import ssl
 
-print(os.getcwd())
 app = Flask(__name__)
 
 app.secret_key = "abcd1234"
@@ -11,14 +10,18 @@ auth = HTTPDigestAuth()
 # TODO: store these more securely? Or use common name of a certificate instead?
 USERS = {"admin": "123abc"}
 
-#TODO Implement TLS with mutual authentication (server and client certificates)
-# check if the user/pass exists
+#TODO Using a verified CA (in the cloud) sign the server with newly "TRUSTED" certs
+
+def generate_server_CA:
+    #communicate with AWS to generate a cert.pem/key.pem/ca.pem
+    #return them and pass them to variables
+    pass
+
 @auth.get_password
 def get_password(username):
     if username in USERS:
         return USERS.get(username)
     return None
-
 
 # create a server endpoint to allow client to connect
 @app.route("/")
@@ -42,4 +45,8 @@ def enroll():
     return "CSR Received Successfully", 200
 
 if __name__ == "__main__":
-    app.run(port=443, ssl_context=('certs/cert.pem', 'certs/key.pem'),debug=True)
+    #only the server presents a certificate - client auth will be done in the cloud
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(certfile="certs/cert.pem", keyfile="certs/key.pem")
+
+    app.run(port=8443, ssl_context=context,debug=True)

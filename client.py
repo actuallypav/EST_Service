@@ -13,7 +13,7 @@ from cryptography.x509.oid import NameOID
 # already connecting over 443 - now need to verify shit
 
 # set variables as to who to connect to - change this to .yml later
-url = "https://127.0.0.1"
+url = "https://127.0.0.1:8443"
 auth = HTTPDigestAuth("admin", "123abc")
 response = Response()
 response.status_code = 400 
@@ -52,8 +52,8 @@ password = input()
 auth = HTTPDigestAuth(username, password)
 
 try:
-    # see what the response from the server is
-    # TODO: do not disable verification - instead create a trusted CA-signed cert and verify that way
+    # Ensure the server is verified
+    #TODO:set verify to True - in production.
     response = requests.post(url+"/enroll", auth=auth, verify=False, data=csr_pem, headers={"Content-Type": "client/pkcs10"})
 except ConnectionError:
     print("Error: Unable to connect to the server. Is it still running?")
