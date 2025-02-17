@@ -1,24 +1,27 @@
-from flask import Flask
+from flask import Flask, request
 from flask_httpauth import HTTPDigestAuth
-
+import ssl
 
 app = Flask(__name__)
 
-# TODO: investigate why i need a secret key? otherwise error 500
 app.secret_key = "abcd1234"
 auth = HTTPDigestAuth()
 
 # TODO: store these more securely? Or use common name of a certificate instead?
 USERS = {"admin": "123abc"}
 
+#TODO Using a verified CA (in the cloud) sign the server with newly "TRUSTED" certs
 
-# check if the user/pass exists
+def generate_server_CA:
+    #communicate with AWS to generate a cert.pem/key.pem/ca.pem
+    #return them and pass them to variables
+    pass
+
 @auth.get_password
 def get_password(username):
     if username in USERS:
         return USERS.get(username)
     return None
-
 
 # create a server endpoint to allow client to connect
 @app.route("/")
@@ -26,6 +29,24 @@ def get_password(username):
 def index():
     return "Authenticated"
 
+# new endpoint to handle CSR submission
+@app.route("/enroll", methods=["POST"])
+@auth.login_required
+def enroll():
+    #get raw csr
+    csr_data = request.data 
+    
+    if not csr_data:
+        return "No CSR Received", 400
+
+    #prjint today add in verification tomorrow
+    print("Receivedd CSR: ", csr_data.decode())
+
+    return "CSR Received Successfully", 200
 
 if __name__ == "__main__":
-    app.run(port=5001)
+    #only the server presents a certificate - client auth will be done in the cloud
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(certfile="certs/cert.pem", keyfile="certs/key.pem")
+
+    app.run(port=8443, ssl_context=context,debug=True)
