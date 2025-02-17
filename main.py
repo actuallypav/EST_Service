@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, request
 from flask_httpauth import HTTPDigestAuth
 import os
 
@@ -26,12 +26,10 @@ def get_password(username):
 def index():
     return "Authenticated"
 
-print("1")
 # new endpoint to handle CSR submission
 @app.route("/enroll", methods=["POST"])
 @auth.login_required
 def enroll():
-    print(2)
     #get raw csr
     csr_data = request.data 
     
@@ -40,7 +38,7 @@ def enroll():
 
     #prjint today add in verification tomorrow
     print("Receivedd CSR: ", csr_data.decode())
-    print("3")
+
     return "CSR Received Successfully", 200
 
 if __name__ == "__main__":

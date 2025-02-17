@@ -53,8 +53,8 @@ auth = HTTPDigestAuth(username, password)
 
 try:
     # see what the response from the server is
-    # TODO: do no disable verification - instead create a trusted CA-signed cert and verify that way
-    response = requests.get(url, auth=auth, verify=False, data=csr_pem, headers={"Content-Type": "client/pkcs10"})
+    # TODO: do not disable verification - instead create a trusted CA-signed cert and verify that way
+    response = requests.post(url+"/enroll", auth=auth, verify=False, data=csr_pem, headers={"Content-Type": "client/pkcs10"})
 except ConnectionError:
     print("Error: Unable to connect to the server. Is it still running?")
 except Timeout:
