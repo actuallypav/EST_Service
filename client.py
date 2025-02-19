@@ -13,7 +13,7 @@ from cryptography.x509.oid import NameOID
 # already connecting over 443 - now need to verify shit
 
 # set variables as to who to connect to - change this to .yml later
-url = "https://127.0.0.1:8443"
+url = "http://127.0.0.1:8443"
 auth = HTTPDigestAuth("admin", "123abc")
 response = Response()
 response.status_code = 400 

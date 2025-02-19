@@ -12,7 +12,7 @@ USERS = {"admin": "123abc"}
 
 #TODO Using a verified CA (in the cloud) sign the server with newly "TRUSTED" certs
 
-def generate_server_CA:
+def generate_server_CA():
     #communicate with AWS to generate a cert.pem/key.pem/ca.pem
     #return them and pass them to variables
     pass
@@ -46,7 +46,4 @@ def enroll():
 
 if __name__ == "__main__":
     #only the server presents a certificate - client auth will be done in the cloud
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    context.load_cert_chain(certfile="certs/cert.pem", keyfile="certs/key.pem")
-
-    app.run(port=8443, ssl_context=context,debug=True)
+    app.run(port=8443,debug=True)
