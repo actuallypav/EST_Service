@@ -1,6 +1,7 @@
 from flask import Flask, request
 from flask_httpauth import HTTPDigestAuth
 import ssl
+import os
 
 app = Flask(__name__)
 
@@ -12,7 +13,7 @@ USERS = {"admin": "123abc"}
 
 #TODO Using a verified CA (in the cloud) sign the server with newly "TRUSTED" certs
 
-def generate_server_CA:
+def generate_server_CA():
     #communicate with AWS to generate a cert.pem/key.pem/ca.pem
     #return them and pass them to variables
     pass
@@ -38,15 +39,12 @@ def enroll():
     
     if not csr_data:
         return "No CSR Received", 400
-
-    #prjint today add in verification tomorrow
-    print("Receivedd CSR: ", csr_data.decode())
-
+    #print today add in verification tomorrow
+    print("Received CSR:\n", csr_data.decode(), flush=True)
+    
+    
     return "CSR Received Successfully", 200
 
 if __name__ == "__main__":
     #only the server presents a certificate - client auth will be done in the cloud
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    context.load_cert_chain(certfile="certs/cert.pem", keyfile="certs/key.pem")
-
-    app.run(port=8443, ssl_context=context,debug=True)
+    app.run(host='0.0.0.0',port=8443,debug=True)
