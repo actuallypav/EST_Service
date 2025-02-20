@@ -1,6 +1,7 @@
 from flask import Flask, request
 from flask_httpauth import HTTPDigestAuth
 import ssl
+import os
 
 app = Flask(__name__)
 
@@ -38,12 +39,12 @@ def enroll():
     
     if not csr_data:
         return "No CSR Received", 400
-
-    #prjint today add in verification tomorrow
-    print("Receivedd CSR: ", csr_data.decode())
-
+    #print today add in verification tomorrow
+    print("Received CSR:\n", csr_data.decode(), flush=True)
+    
+    
     return "CSR Received Successfully", 200
 
 if __name__ == "__main__":
     #only the server presents a certificate - client auth will be done in the cloud
-    app.run(port=8443,debug=True)
+    app.run(host='0.0.0.0',port=8443,debug=True)

@@ -9,4 +9,4 @@ RUN pip install -r requirements.txt
 EXPOSE 8433
 
 # Run Server
-CMD ["python",  "main.py"]
+CMD ["python","-u", "main.py"]
