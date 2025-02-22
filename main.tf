@@ -13,30 +13,30 @@ provider "aws" {
 
 #create a security group for ALB
 resource "aws_security_group" "est_alb_sg" {
-  name		= "est-alb-security-group"
-  description	= "Allow inbound traffic from clients and outbound to EC2"
-  vpc_id	= aws_vpc.main.id
+  name        = "est-alb-security-group"
+  description = "Allow inbound traffic from clients and outbound to EC2"
+  vpc_id      = aws_vpc.main.id
 
   #ingress = accept client traffic on HTTPS (443)
   ingress {
-    from_port	= 443
-    to_port	= 443
-    protocol	= "tcp"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
   #egress - allow ALB to communicate with EC2 and clients
   egress {
-    from_port	= 80
-    to_port	= 80
-    protocol	= "tcp"
-    cidr_blocks	= #add in details for ec2_est_sg 
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] #add in details for ec2_est_sg 
   }
   eggress {
-    from_port 	= 443
-    to_port 	= 443
-    protocol	= "tcp"
-    cidr_blocks	= ["0.0.0.0/0"] # allow ALB to send back to clients
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"] # allow ALB to send back to clients
   }
 }
 
@@ -47,17 +47,17 @@ resource "aws_vpc" "est_alb_vpc" {
 
 #create a public subnet for ALB
 resource "aws_subnet" "est_alb_public_1" {
-  vpc_id			= aws_vpc.est_alb_vpc.id
-  cidr_block			= "10.0.1.0/24"
-  availability_zone 		= "euw2-az1"
-  map_public_ip_on_launch  	= true
+  vpc_id                  = aws_vpc.est_alb_vpc.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "euw2-az1"
+  map_public_ip_on_launch = true
 }
 
 resource "aws_subnet" "est_alb_public_2" {
-  vpc_id                        = aws_vpc.est_alb_vpc.id
-  cidr_block                    = "10.0.2.0/24"
-  availability_zone             = "euw2-az2"
-  map_public_ip_on_launch       = true
+  vpc_id                  = aws_vpc.est_alb_vpc.id
+  cidr_block              = "10.0.2.0/24"
+  availability_zone       = "euw2-az2"
+  map_public_ip_on_launch = true
 }
 
 resource "aws_internet_gateway" "alb_est_igw" {
@@ -70,18 +70,18 @@ resource "aws_route_table" "alb_est_public_rt" {
 }
 
 resource "aws_route_table_assosciation" "est_alb_public_1" {
-  subnet_id		= aws_subnet.est_alb_public_1.id
-  route_table_id	= aws_route_table.alb_est_public_rt.id
+  subnet_id      = aws_subnet.est_alb_public_1.id
+  route_table_id = aws_route_table.alb_est_public_rt.id
 }
 
 resource "aws_route_table_assosciation" "est_alb_public_2" {
-  subnet_id             = aws_subnet.est_alb_public_2.id
-  route_table_id        = aws_route_table.alb_est_public_rt.id
+  subnet_id      = aws_subnet.est_alb_public_2.id
+  route_table_id = aws_route_table.alb_est_public_rt.id
 }
 
 #create a bucket (for logs) for ALB
 resource "aws_s3_bucket" "est_alb_logs" {
-  bucket 	= "est-alb-logs-bucket"
+  bucket        = "est-alb-logs-bucket"
   force_destroy = true
 }
 
@@ -90,11 +90,11 @@ resource "aws_s3_bucket_lifecycle_configuration" "est_alb_logs_lifecycle" {
   bucket = aws_s3_bucket.est_alb_logs.id
 
   rule {
-    id		= "expire-alb-logs"
-    status	= "Enabled"
-    
+    id     = "expire-alb-logs"
+    status = "Enabled"
+
     expiration {
-      days = 3 
+      days = 3
     }
   }
 }
