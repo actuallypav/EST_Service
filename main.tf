@@ -2,7 +2,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 3.5.0"
+      version = "~> 4.67.0"
     }
   }
 }
@@ -15,7 +15,7 @@ provider "aws" {
 resource "aws_security_group" "est_alb_sg" {
   name        = "est-alb-security-group"
   description = "Allow inbound traffic from clients and outbound to EC2"
-  vpc_id      = aws_vpc.main.id
+  vpc_id      = aws_vpc.est_alb_vpc.id
 
   #ingress = accept client traffic on HTTPS (443)
   ingress {
@@ -32,7 +32,7 @@ resource "aws_security_group" "est_alb_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"] #add in details for ec2_est_sg 
   }
-  eggress {
+  egress {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
@@ -69,12 +69,12 @@ resource "aws_route_table" "alb_est_public_rt" {
   vpc_id = aws_vpc.est_alb_vpc.id
 }
 
-resource "aws_route_table_assosciation" "est_alb_public_1" {
+resource "aws_route_table_association" "est_alb_public_1" {
   subnet_id      = aws_subnet.est_alb_public_1.id
   route_table_id = aws_route_table.alb_est_public_rt.id
 }
 
-resource "aws_route_table_assosciation" "est_alb_public_2" {
+resource "aws_route_table_association" "est_alb_public_2" {
   subnet_id      = aws_subnet.est_alb_public_2.id
   route_table_id = aws_route_table.alb_est_public_rt.id
 }
@@ -99,8 +99,6 @@ resource "aws_s3_bucket_lifecycle_configuration" "est_alb_logs_lifecycle" {
   }
 }
 
-
-
 #create a ACM cert for ALB
 resource "aws_acm_certificate" "est_cert" {
   domain_name       = var.domain_name
@@ -114,6 +112,35 @@ resource "aws_acm_certificate" "est_cert" {
     create_before_destroy = true
   }
 }
+
+#fetch the hosted zone for the domain
+data "aws_route53_zone" "main_hz" {
+  name         = var.domain_name
+  private_zone = false
+}
+
+resource "aws_route53_record" "est_cert_validation" {
+  for_each = {
+    for dvo in aws_acm_certificate.est_cert.domain_validation_options : dvo.domain_name => {
+      name  = dvo.resource_record_name
+      type  = dvo.resource_record_type
+      value = dvo.resource_record_value
+    }
+  }
+
+  zone_id = data.aws_route53_zone.main_hz.zone_id
+  name    = each.value.name
+  type    = each.value.type
+  records = [each.value.value]
+  ttl     = 60
+}
+
+#successful validation of an ACM certificate
+resource "aws_acm_certificate_validation" "est_cert_valid" {
+  certificate_arn         = aws_acm_certificate.est_cert.arn
+  validation_record_fqdns = [for record in aws_route53_record.est_cert_validation : record.fqdn]
+}
+
 
 #create an ALB
 resource "aws_alb" "EST_alb" {
@@ -146,7 +173,7 @@ resource "aws_lb_listener" "alb_est_listener" {
   port              = "443"
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-2016-08"
-  certificate_arn   = aws_acm_certificate.est_cert.arn
+  certificate_arn   = aws_acm_certificate_validation.est_cert_valid.certificate_arn
 
   default_action {
     type             = "forward"
