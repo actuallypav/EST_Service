@@ -12,8 +12,8 @@ provider "aws" {
 }
 
 #create a security group for ALB
-resource "aws_security_group" "est_alb_sg" {
-  name        = "est-alb-security-group"
+resource "aws_security_group" "est_alb" {
+  name        = "est-alb"
   description = "Allow inbound traffic from clients and outbound to EC2"
   vpc_id      = aws_vpc.est_alb_vpc.id
 
@@ -147,7 +147,7 @@ resource "aws_alb" "EST_alb" {
   name               = "EST-alb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.est_alb_sg.id]
+  security_groups    = [aws_security_group.est_alb.id]
   subnets            = [aws_subnet.est_alb_public_1.id, aws_subnet.est_alb_public_2.id]
 
   #will prevent tf from deleting the load balancer
