@@ -24,7 +24,7 @@ data "archive_file" "python_zip" {
 
 resource "aws_lambda_function" "est_server" {
   filename      = "payload.zip"
-  function_name = "var.lambda_function_name"
+  function_name = var.lambda_function_name
   role          = aws_iam_role.assume_role.arn
 
   source_code_hash = data.archive_file.python_zip.output_base64sha256
