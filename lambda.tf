@@ -22,7 +22,7 @@ data "archive_file" "python_zip" {
   output_path = "payload.zip"
 }
 
-resource "aws_lambda_function" "est" {
+resource "aws_lambda_function" "est_server" {
   filename      = "payload.zip"
   function_name = "var.lambda_function_name"
   role          = aws_iam_role.assume_role.arn
@@ -31,10 +31,6 @@ resource "aws_lambda_function" "est" {
 
   runtime = "python3.10"
   handler = "lambda_handler"
-
-  logging_config {
-    log_format = "Text"
-  }
 
   depends_on = [
     aws_cloudwatch_log_group.lambda_outputs

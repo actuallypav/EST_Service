@@ -92,8 +92,16 @@ resource "aws_lb" "est_gateway" {
   }
 }
 
+#point the ALB at the EST Server Lambda
 resource "aws_lb_target_group" "est_server" {
-  #point the ALB at the EST Service EC2
+  name = "est-server"
+  target_type = "lambda"
+  vpc_id = aws_vpc.est_lb_cloud.id
+}
+
+resource "aws_lb_target_group_attachment" "est_pointer" {
+  target_group_arn = aws_lb_target_group.est_server.arn
+  target_id = aws_lambda_function.est_server.arn
 }
 
 resource "aws_lb_listener" "est_gateway_endpoint" {
@@ -110,4 +118,3 @@ resource "aws_lb_listener" "est_gateway_endpoint" {
     Project = "est_service"
   }
 }
-
