@@ -97,14 +97,14 @@ resource "aws_lb" "est_gateway" {
 
 #point the ALB at the EST Server Lambda
 resource "aws_lb_target_group" "est_server" {
-  name = "est-server"
+  name        = "est-server"
   target_type = "lambda"
-  vpc_id = aws_vpc.est_lb_cloud.id
+  vpc_id      = aws_vpc.est_lb_cloud.id
 }
 
 resource "aws_lb_target_group_attachment" "est_pointer" {
   target_group_arn = aws_lb_target_group.est_server.arn
-  target_id = aws_lambda_function.est_server.arn
+  target_id        = aws_lambda_function.est_server.arn
 }
 
 resource "aws_lb_listener" "est_gateway_endpoint" {
@@ -117,27 +117,20 @@ resource "aws_lb_listener" "est_gateway_endpoint" {
     target_group_arn = aws_lb_target_group.est_server.arn
   }
 
-  tags = {
-    Project = "est_service"
-  }
 }
 
 #give permission to nlb to call lambda
 resource "aws_lambda_permission" "nlb_invocation" {
-  statement_id = "AllowNLBInvocation"
-  action = "lambda:InvokeFunction"
+  statement_id  = "AllowNLBInvocation"
+  action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.est_server.function_name
-  principal = "elasticloadbalancing.amazonaws.com"
-  source_arn = aws_lb_target_group.est_server.arn
+  principal     = "elasticloadbalancing.amazonaws.com"
+  source_arn    = aws_lb_target_group.est_server.arn
 }
 
 #try to fetch AES secret
-data "aws_secretmanager_secret" "existing_kv" {
+data "aws_secretsmanager_secret" "existing_kv" {
   name = var.kv_name
-
-  lifecycle {
-    ignore_changes = all
-  }
 }
 
 #generate a 32-byte AES Key (b64 encoded)
@@ -153,18 +146,18 @@ resource "random_bytes" "aes_iv" {
 #the shit below can defo break tbh
 #create a secret for AES decryption/encryption
 resource "aws_secretsmanager_secret" "kv_encryptor" {
-  count = local.does_secret_exist
-  name = var.kv_name
+  count       = try(local.does_secret_exist)
+  name        = var.kv_name
   description = "AES 256 Key and IV"
 }
 
 #store KV in Secrets Manager (IF previous secret does not exist)
 resource "aws_secretsmanager_secret_version" "kv_value" {
-  count = local.does_secret_exist
+  count = try(local.does_secret_exist)
 
   secret_id = aws_secretsmanager_secret.kv_encryptor[0].id
   secret_string = jsonencode({
-    aes_key = base64encode(random_bytes.aes_key.result)
-    aes_iv = base64encode(random_bytes.aes_iv.result)
+    aes_key = base64encode(random_bytes.aes_key)
+    aes_iv  = base64encode(random_bytes.aes_iv)
   })
 }

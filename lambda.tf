@@ -24,13 +24,13 @@ data "archive_file" "python_zip" {
 
 resource "aws_lambda_function" "est_server" {
   filename      = "payload.zip"
-  function_name = var.lambda_function_name
+  function_name = var.function_name
   role          = aws_iam_role.assume_role.arn
 
   source_code_hash = data.archive_file.python_zip.output_base64sha256
 
   runtime = "python3.10"
-  handler = "lambda_handler"
+  handler = "server.lambda_handler"
 
   depends_on = [
     aws_cloudwatch_log_group.lambda_outputs
@@ -38,6 +38,6 @@ resource "aws_lambda_function" "est_server" {
 }
 
 resource "aws_cloudwatch_log_group" "lambda_outputs" {
-  name              = "/aws/lambda/${var.lambda_function_name}"
+  name              = "/aws/lambda/${var.function_name}"
   retention_in_days = 3
 }
