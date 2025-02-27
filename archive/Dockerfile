@@ -1,7 +1,7 @@
 FROM python:3.9
 
 ADD certs/ .
-ADD main.py .
+ADD server.py .
 ADD requirements.txt .
 
 RUN pip install -r requirements.txt
