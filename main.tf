@@ -11,6 +11,9 @@ provider "aws" {
   region = "eu-west-2"
 }
 
+locals {
+  does_secret_exist = length(data.aws_secretsmanager_secret.existing_kv.arn) > 0 ? 0 : 1
+}
 
 #create vpc for ALB
 resource "aws_vpc" "est_lb_cloud" {
@@ -126,4 +129,42 @@ resource "aws_lambda_permission" "nlb_invocation" {
   function_name = aws_lambda_function.est_server.function_name
   principal = "elasticloadbalancing.amazonaws.com"
   source_arn = aws_lb_target_group.est_server.arn
+}
+
+#try to fetch AES secret
+data "aws_secretmanager_secret" "existing_kv" {
+  name = var.kv_name
+
+  lifecycle {
+    ignore_changes = all
+  }
+}
+
+#generate a 32-byte AES Key (b64 encoded)
+resource "random_bytes" "aes_key" {
+  length = 32
+}
+
+#generate a 16-byte IV (b64 encoded)
+resource "random_bytes" "aes_iv" {
+  length = 16
+}
+
+#the shit below can defo break tbh
+#create a secret for AES decryption/encryption
+resource "aws_secretsmanager_secret" "kv_encryptor" {
+  count = local.does_secret_exist
+  name = var.kv_name
+  description = "AES 256 Key and IV"
+}
+
+#store KV in Secrets Manager (IF previous secret does not exist)
+resource "aws_secretsmanager_secret_version" "kv_value" {
+  count = local.does_secret_exist
+
+  secret_id = aws_secretsmanager_secret.kv_encryptor[0].id
+  secret_string = jsonencode({
+    aes_key = base64encode(random_bytes.aes_key.result)
+    aes_iv = base64encode(random_bytes.aes_iv.result)
+  })
 }
