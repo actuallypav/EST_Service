@@ -35,6 +35,13 @@ resource "aws_lambda_function" "est_server" {
   depends_on = [
     aws_cloudwatch_log_group.lambda_outputs
   ]
+
+  environment {
+    variables = {
+      KV_NAME = var.kv_name
+      REGION = var.region
+    }
+  }
 }
 
 resource "aws_cloudwatch_log_group" "lambda_outputs" {
