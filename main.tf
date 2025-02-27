@@ -118,3 +118,12 @@ resource "aws_lb_listener" "est_gateway_endpoint" {
     Project = "est_service"
   }
 }
+
+#give permission to nlb to call lambda
+resource "aws_lambda_permission" "nlb_invocation" {
+  statement_id = "AllowNLBInvocation"
+  action = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.est_server.function_name
+  principal = "elasticloadbalancing.amazonaws.com"
+  source_arn = aws_lb_target_group.est_server.arn
+}
