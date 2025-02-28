@@ -1,41 +1,31 @@
-# EST_Service
+# EST_Service  
 
-A basic outline of the EST Service is outlined by:
+## Overview  
+**EST_Service** is a Python-based implementation of the Enrollment over Secure Transport (EST) protocol (RFC 7030), designed for cost-effective and automated IoT device enrollment in AWS environments. This deployment is optimized for **low-cost, scalable, and efficient device provisioning** using a **Network Load Balancer (NLB)** and **AES encryption** to avoid HTTPS certificate costs.  
 
-1. Setting Up the EST Client
-    - Establish a secure connection with the EST Server using TLS.
-    - Validate the server's certificate using a predefined trust store.
-    - If trust is established, proceed with generating a public/private key pair.
-    - Create a Certificate Signing Request (CSR) using the generated key pair.
-    - Send the PKCS#10 CSR request to the EST Server over HTTPS.
+## How This EST Implementation Works  
+- **No HTTPS Overhead**: Uses **AES encryption** instead of HTTPS to reduce TLS certificate costs.  
+- **AWS Lambda Deployment**: Automates the creation and enrollment of IoT devices ("things") in AWS IoT Core.  
+- **NLB for Cost Efficiency**: Unlike ALBs, an **NLB is used to minimize costs** while still enabling scalable load balancing.  
+- **Automated Certificate Provisioning**: IoT devices securely request and receive certificates, eliminating manual setup.  
 
-2. Handling the Request on the EST Server
-    - Receive the incoming certificate request (CSR) from the EST Client.
-    - Verify the client's credentials:
-    - Use TLS client authentication (mutual TLS).
-    - Alternatively, use HTTP-based authentication (e.g., Basic Auth, OAuth).
-    - If authentication is successful, extract the CSR details.
-    - Forward the CSR to the Certificate Authority (CA).
+## Why Use This Over a GUI?  
+- **Cheaper & Efficient**: Avoids unnecessary AWS costs while maintaining security.  
+- **Fully Automated**: No manual enrollment—devices register and get certificates on their own.  
+- **Scales Easily**: Works with large numbers of devices in AWS without performance bottlenecks.  
+- **Lightweight & Headless**: CLI-based, perfect for embedded IoT devices.  
 
-3. Interacting with the Certificate Authority (CA)
-    - Package the CSR into a request that the CA understands (e.g., SCEP, ACME, or REST API call).
-    - Submit the request to the CA for certificate issuance.
-    - Wait for a response from the CA.
-    - If approved, retrieve the issued certificate in PKCS#7 format.
+## Components & Deployment  
+- **Terraform Required**: Infrastructure is built using Terraform—install it first.  
+- **Server (NLB + Lambda)**: The NLB forwards requests to a Lambda function, handling device enrollment.  
+- **Client (`client.py`)**: Runs on each IoT device, encrypting requests and communicating with the EST server.  
+- **AWS IoT Core Integration**: The Lambda function registers devices and manages certificates in AWS.  
 
-4. Returning the Certificate to the EST Client
-    - Send the issued certificate back to the EST Client over a secure TLS connection.
-    - Ensure that the certificate is formatted correctly (e.g., PEM, DER).
-    - The client receives and installs the certificate for future authentication and encryption use.
+### Usage  
+1. **Deploy AWS resources** using Terraform.  
+2. **Run `client.py`** on IoT devices to securely request certificates.  
 
-5. Additional Features (Optional Enhancements)
-    - Implement automatic renewal of certificates before expiration.
-    - Provide audit logging of issued certificates and requests.
-    - Enable support for Bootstrap EST, allowing devices without initial certificates to enroll securely.
-    - Offer a graphical or CLI-based client for easy certificate enrollment.
-
-VERY MUCH UNDER CONSTRUCTION
-
+The `archive` folder contains legacy code and is not needed. See the repo for full details.
 
 <img src="EST-certificate-enrollement.png" alt="*Source: Sectigo*">
 <sup><sub>Source: Sectigo</sub></sup>
