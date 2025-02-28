@@ -3,6 +3,7 @@ import base64
 from cryptography import x509
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.padding import PKCS7
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 import requests
 import boto3
@@ -102,17 +103,44 @@ def sign_csr(csr):
     iot = boto3.client("iot")
 
     response = iot.create_certificate_from_csr(
-        certifacteSigningRequest=csr,
+        certifacteSigningRequest=csr.public_bytes(encoding=serialization.Encoding.PEM).decode(),
         setAsActive=True
     )
 
     cert_arn = response["certificateARN"]
-    cert_id = response["certificateId"]
     cert_pem = response["certificatePem"]
 
     #TODO: Retrive name/policies from OID for now just make default ones
     thing_name = "IoTPavTest"
     policy_name = "IoTPavTestPolicy"
+
+    #Verify the above exists - if not create
+    try:
+        iot.describe_thing(thingName=thing_name)
+        print(f"Thing '{thing_name}' exists.")
+    except iot.exceptions.ResourceNotFoundException:
+        print(f"Thing '{thing_name}' does not exist. Creating it now...")
+        iot.create_thing(thingName=thing_name)
+
+    try:
+        iot.get_policy(policyName=policy_name)
+        print(f"Policy '{policy_name}' exists.")
+    except iot.exceptions.ResourceNotFoundException:
+        print(f"Policy '{policy_name}' does not exist. Creating it now...")
+        policy_document = {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": "iot:Connect",
+                    "Resource": "*"
+                }
+            ]
+        }
+        iot.create_policy(
+            policyName=policy_name,
+            policyDocument=json.dumps(policy_document)
+        )
 
     iot.attach_thing_principal(
         thingName=thing_name,
