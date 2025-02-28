@@ -38,7 +38,7 @@ resource "aws_lambda_function" "est_server" {
 
   environment {
     variables = {
-      KV_NAME = var.kv_name
+      KV_NAME = var.priv_key_name
       REGION = var.region
     }
   }
