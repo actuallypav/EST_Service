@@ -11,6 +11,13 @@ provider "aws" {
   region = var.region
 }
 
+#get aws account id
+data "aws_caller_identity" "current" {}
+
+output "account_id" {
+  value = data.aws_caller_identity.current.account_id
+}
+
 locals {
   does_secret_exist = length(data.aws_secretsmanager_secret.existing_kv.arn) > 0 ? 0 : 1
 }

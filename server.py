@@ -65,7 +65,7 @@ def decrypt_csr(ciphertext, account_id, region, kv_name):
     #decrypt with AES
     cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
     decryptor = cipher.decryptor()
-    plaintext_padded = decryptor_padded = decryptor.update(plaintext_padded) + decryptor.finalize()
+    plaintext_padded = decryptor.update(plaintext_padded) + decryptor.finalize()
 
     unpadder = PKCS7(128).unpadder()
     plaintext = unpadder.update(plaintext_padded) + unpadder.finalize()
