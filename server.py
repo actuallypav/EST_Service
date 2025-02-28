@@ -11,14 +11,17 @@ import os
 
 def lambda_handler(event, context):
 
+    source_ip = event['requestContext']['identity']['sourceIp']
+    source_port = event['resquestContext']['identity']['sourcePort']
+
+    # Extract raw TCP Payload
+    csr_aes = event.get("body", "")
+
     kv_name = os.environ.get["KV_NAME"]
     region = os.environ.get["REGION"]
     root_ca_url =  os.environ.get["ROOT_CA_URL"]
 
     account_id = boto3.client('sts').get_caller_identity().get('Account')
-
-    # Extract raw TCP Payload
-    csr_aes = event.get("body", "")
 
     if not csr_aes:
         return {
@@ -32,17 +35,23 @@ def lambda_handler(event, context):
     verify_csr(csr)
 
     root_ca = download_root_ca(root_ca_url)
-
     cert_pem = sign_csr(csr)
     
-    #TODO: send the signed shit back to the client
-    print("this is the ROOT CA: ", root_ca)
-    print("=============================================================")
-    print("=============================================================")
-    print("=============================================================")
-    print("=============================================================")
-    print("=============================================================")
-    print("this is the certificate pem: ", cert_pem)
+    #send the signed stuff back to the client
+
+    response_data = {
+        "root_ca": root_ca,
+        "cert_pem": cert_pem
+    }
+
+    json_data = json.dumps(response_data)
+
+    encoded_data = base64.b64encode(json_data.encode()).decode()
+
+    return {
+        "statusCode": 200,
+        "body": encoded_data
+    }
 
 def decrypt_csr(ciphertext, account_id, region, kv_name):
     #retrive key/iv
