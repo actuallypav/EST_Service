@@ -128,26 +128,6 @@ resource "aws_lambda_permission" "nlb_invocation" {
   source_arn    = aws_lb_target_group.est_server.arn
 }
 
-#create private key to be used by client to sign csr
-resource "tls_private_key" "csr_rsa" {
-  algorithm = "RSA"
-  rsa_bits = 2048
-}
-
-output "private_key_pem" {
-  value = tls_private_key.rsa.private_key_pem
-  sensitive = true
-}
-
-resource "aws_secretsmanager_secret" "priv_key" {
-  name = var.priv_key_name
-}
-
-resource "aws_secretsmanager_secret_version" "priv_key_version" {
-  secret_id = aws_secretsmanager_secret.priv_key.id
-  secret_string =  tls_private_key.csr_rsa.priva
-}
-
 #try to fetch AES secret
 data "aws_secretsmanager_secret" "existing_kv" {
   name = var.kv_name
