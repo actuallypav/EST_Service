@@ -8,7 +8,14 @@ terraform {
 }
 
 provider "aws" {
-  region = "eu-west-2"
+  region = var.region
+}
+
+#get aws account id
+data "aws_caller_identity" "current" {}
+
+output "account_id" {
+  value = data.aws_caller_identity.current.account_id
 }
 
 locals {
