@@ -128,7 +128,7 @@ resource "aws_lambda_permission" "nlb_invocation" {
   source_arn    = aws_lb_target_group.est_server.arn
 }
 
-#create private key to be used by client/server
+#create private key to be used by client to sign csr
 resource "tls_private_key" "csr_rsa" {
   algorithm = "RSA"
   rsa_bits = 2048
@@ -145,5 +145,39 @@ resource "aws_secretsmanager_secret" "priv_key" {
 
 resource "aws_secretsmanager_secret_version" "priv_key_version" {
   secret_id = aws_secretsmanager_secret.priv_key.id
-  secret_string =  tls_private_key.csr_rsa.private_key_pem
+  secret_string =  tls_private_key.csr_rsa.priva
+}
+
+#try to fetch AES secret
+data "aws_secretsmanager_secret" "existing_kv" {
+  name = var.kv_name
+}
+
+#generate a 32-byte AES Key (b64 encoded)
+resource "random_bytes" "aes_key" {
+  length = 32
+}
+
+#generate a 16-byte IV (b64 encoded)
+resource "random_bytes" "aes_iv" {
+  length = 16
+}
+
+#the shit below can defo break tbh
+#create a secret for AES decryption/encryption
+resource "aws_secretsmanager_secret" "kv_encryptor" {
+  count       = try(local.does_secret_exist)
+  name        = var.kv_name
+  description = "AES 256 Key and IV"
+}
+
+#store KV in Secrets Manager (IF previous secret does not exist)
+resource "aws_secretsmanager_secret_version" "kv_value" {
+  count = try(local.does_secret_exist)
+
+  secret_id = aws_secretsmanager_secret.kv_encryptor[0].id
+  secret_string = jsonencode({
+    aes_key = base64encode(random_bytes.aes_key)
+    aes_iv  = base64encode(random_bytes.aes_iv)
+  })
 }
