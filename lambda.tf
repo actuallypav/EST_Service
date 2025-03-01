@@ -11,7 +11,7 @@ data "aws_iam_policy_document" "permissions" {
 
 resource "aws_iam_role" "assume_role" {
   name               = "assume-role"
-  assume_role_policy = aws_iam_policy.est_server_policy
+  assume_role_policy = aws_iam_policy.est_server_policy.id
 }
 
 resource "aws_iam_policy" "est_server_policy" {
@@ -28,17 +28,17 @@ resource "aws_iam_policy" "est_server_policy" {
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ]
-        Resource = "arn:aws:*:${var.region}:*:*:*"
+        Resource = "arn:aws:*:${var.region}:${data.aws_caller_identity.current.account_id}:*:*"
       },
       {
         Effect   = "Allow"
         Action   = ["secretsmanager:GetSecretValue"]
-        Resource = "arn:aws:*:${var.region}:*:*:*"
+        Resource = "arn:aws:*:${var.region}:${data.aws_caller_identity.current.account_id}:secret:*"
       },
       {
         Effect   = "Allow"
         Action   = ["acm:CreateCertificateFromCsr"]
-        Resource = "arn:aws:*:${var.region}:*:*:*"
+        Resource = "arn:aws:*:${var.region}:${data.aws_caller_identity.current.account_id}:*:*"
       },
       {
         Effect = "Allow"
@@ -50,7 +50,12 @@ resource "aws_iam_policy" "est_server_policy" {
           "iot:AttachThingPrincipal",
           "iot:AttachPolicy"
         ]
-        Resource = "arn:aws:*:${var.region}:*:*:*"
+        Resource = "arn:aws:*:${var.region}:${data.aws_caller_identity.current.account_id}:*:*"
+      },
+      {
+        Effect = "Allow"
+        Action = "lambda:InvokeFunction"
+        Resource = aws_lambda_function.est_server.arn
       }
     ]
   })
