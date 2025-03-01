@@ -10,48 +10,50 @@ import boto3
 import os
 
 def lambda_handler(event, context):
+    try:
+        source_ip = event['requestContext']['http']['sourceIp']
 
-    source_ip = event['requestContext']['identity']['sourceIp']
-    source_port = event['resquestContext']['identity']['sourcePort']
+        kv_name = os.environ.get["KV_NAME"]
+        region = os.environ.get["REGION"]
+        root_ca_url =  os.environ.get["ROOT_CA_URL"]
 
-    # Extract raw TCP Payload
-    csr_aes = event.get("body", "")
+        account_id = boto3.client('sts').get_caller_identity().get('Account')
 
-    kv_name = os.environ.get["KV_NAME"]
-    region = os.environ.get["REGION"]
-    root_ca_url =  os.environ.get["ROOT_CA_URL"]
+        if "body" not in event or not event["body"]:
+            return {
+                "statusCode": 400,
+                "body": json.dumps({"error": "No CSR data received"})
+            }
+        
+        csr_aes = base64.b64decode(event["body"])
 
-    account_id = boto3.client('sts').get_caller_identity().get('Account')
+        csr_pem = decrypt_csr(csr_aes, account_id, region, kv_name).encode()
+        csr = x509.load_pem_x509_csr(csr_pem)
 
-    if not csr_aes:
-        return {
-            "statusCode": 400,
-            "body": json.dumps({"error": "No CSR data received"})
+        verify_csr(csr)
+
+        root_ca = download_root_ca(root_ca_url)
+        cert_pem = sign_csr(csr)
+        
+        #send the signed stuff back to the client
+
+        response_data = {
+            "root_ca": root_ca,
+            "cert_pem": cert_pem
         }
-    
-    csr_pem = decrypt_csr(csr_aes, account_id, region, kv_name).encode()
-    csr = x509.load_pem_x509_csr(csr_pem)
 
-    verify_csr(csr)
-
-    root_ca = download_root_ca(root_ca_url)
-    cert_pem = sign_csr(csr)
-    
-    #send the signed stuff back to the client
-
-    response_data = {
-        "root_ca": root_ca,
-        "cert_pem": cert_pem
-    }
-
-    json_data = json.dumps(response_data)
-
-    encoded_data = base64.b64encode(json_data.encode()).decode()
-
-    return {
-        "statusCode": 200,
-        "body": encoded_data
-    }
+        return {
+            "statusCode": 200,
+            "headers": {
+                "Content-Type": "application/json"
+            },
+            "body": base64.b64encode(json.dumps(response_data).encode())
+        }
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"ERROR": str(e)})
+        }
 
 def decrypt_csr(ciphertext, account_id, region, kv_name):
     #retrive key/iv
