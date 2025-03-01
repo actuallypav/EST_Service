@@ -1,6 +1,0 @@
-{
-    "function_name": "est_server",
-    "kv_name": "AES_kv",
-    "root_ca_url": "https://www.amazontrust.com/repository/AmazonRootCA1.pem",
-    "region": "eu-west-2"
-}
