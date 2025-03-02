@@ -66,10 +66,18 @@ resource "aws_iam_role_policy_attachment" "attach_role_est" {
   policy_arn = aws_iam_policy.est_server_policy.arn
 }
 
+resource "null_resource" "install_dependencies" {
+  provisioner "local-exec" {
+    command = "pop install -r src/requirements.txt -t src/"
+  }
+}
+
 data "archive_file" "python_zip" {
   type        = "zip"
-  source_file = "server.py"
+  source_file = "src"
   output_path = "payload.zip"
+
+  depends_on = [null_resource.install_dependencies]
 }
 
 resource "aws_lambda_function" "est_server" {
