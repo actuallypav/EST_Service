@@ -2,7 +2,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 4.67.0"
+      version = "~> 5.0.0"
     }
   }
 }
@@ -18,126 +18,102 @@ output "account_id" {
   value = data.aws_caller_identity.current.account_id
 }
 
-locals {
-  does_secret_exist = length(data.aws_secretsmanager_secret.existing_kv.arn) > 0 ? 0 : 1
+#create API Gateway HTTP API
+resource "aws_apigatewayv2_api" "est_api" {
+  name          = "est-api"
+  protocol_type = "HTTP"
 }
 
-#create vpc for ALB
-resource "aws_vpc" "est_lb_cloud" {
-  cidr_block = "10.0.0.0/16"
+resource "aws_apigatewayv2_integration" "lambda_integration" {
+  api_id           = aws_apigatewayv2_api.est_api.id
+  integration_type = "AWS_PROXY"
+  integration_uri  = aws_lambda_function.est_server.invoke_arn
 }
 
-#create a public subnet for ALB
-resource "aws_subnet" "est_lb_public_1" {
-  vpc_id                  = aws_vpc.est_lb_cloud.id
-  cidr_block              = "10.0.1.0/24"
-  availability_zone       = "euw2-az1"
-  map_public_ip_on_launch = true
+resource "aws_apigatewayv2_route" "lambda_route" {
+  api_id    = aws_apigatewayv2_api.est_api.id
+  route_key = "ANY /{proxy+}"
+  target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
 }
 
-resource "aws_subnet" "est_lb_public_2" {
-  vpc_id                  = aws_vpc.est_lb_cloud.id
-  cidr_block              = "10.0.2.0/24"
-  availability_zone       = "euw2-az2"
-  map_public_ip_on_launch = true
+resource "aws_cloudwatch_log_group" "est_gw_logs" {
+  name              = "/aws/apigatewayv2/example-api"
+  retention_in_days = 7
 }
 
-resource "aws_internet_gateway" "alb_est_edge" {
-  vpc_id = aws_vpc.est_lb_cloud.id
+#give permission to api gateway to write logs
+resource "aws_iam_role" "est_gw_role" {
+  name = "est-gw-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "apigateway.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
 }
 
-#allows alb to access internet and outbound to respond to clients
-resource "aws_route_table" "lb_est_public" {
-  vpc_id = aws_vpc.est_lb_cloud.id
+resource "aws_iam_policy" "est_gw_policy" {
+  name = "est-gw-policy"
+  description = "Allows the EST API Gateway to write logs to Cloudwatch"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:DescribeLogGroups",
+        "logs:DescribeLogStreams",
+        "logs:PutLogEvents",
+        "logs:GetLogEvents",
+        "logs:FilterLogEvents"
+      ]
+      resource = aws_cloudwatch_log_group.est_gw_logs.arn
+    }]
+  })
 }
 
-resource "aws_route_table_association" "est_lb_public_1" {
-  subnet_id      = aws_subnet.est_lb_public_1.id
-  route_table_id = aws_route_table.lb_est_public.id
+resource "aws_iam_role_policy_attachment" "est_gw" {
+  role = aws_iam_role.est_gw_role.name
+  policy_arn = aws_iam_policy.est_gw_policy.arn
 }
 
-resource "aws_route_table_association" "est_lb_public_2" {
-  subnet_id      = aws_subnet.est_lb_public_2.id
-  route_table_id = aws_route_table.lb_est_public.id
-}
+resource "aws_apigatewayv2_stage" "est_gw_stage" {
+  api_id      = aws_apigatewayv2_api.est_api.id
+  name        = "prod"
+  auto_deploy = true
 
-#create a bucket (for logs) for NLB
-resource "aws_s3_bucket" "est_logs" {
-  bucket        = "est-logs"
-  force_destroy = true
-}
-
-#give the bucket an expiration rule - delete data after 3 days
-resource "aws_s3_bucket_lifecycle_configuration" "est_logs_lifecycle" {
-  bucket = aws_s3_bucket.est_logs.id
-
-  rule {
-    id     = "expire-logs"
-    status = "Enabled"
-
-    expiration {
-      days = 3
-    }
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.est_gw_logs.arn
+    format = jsonencode({
+      requestId     = "$context.requestId",
+      ip           = "$context.identity.sourceIp",
+      httpMethod   = "$context.httpMethod",
+      routeKey     = "$context.routeKey",
+      status       = "$context.status",
+      protocol     = "$context.protocol",
+      responseLength = "$context.responseLength"
+    })
   }
 }
 
-#create an NLB
-resource "aws_lb" "est_gateway" {
-  name               = "est-gateway"
-  internal           = false
-  load_balancer_type = "network"
-  subnets            = [aws_subnet.est_lb_public_1.id, aws_subnet.est_lb_public_2.id]
-
-  #will prevent tf from deleting the load balancer
-  enable_deletion_protection = true
-
-  access_logs {
-    bucket  = aws_s3_bucket.est_logs.id
-    prefix  = "EST-alb"
-    enabled = true
-  }
-
-  tags = {
-    Project = "est_service"
-  }
-}
-
-#point the ALB at the EST Server Lambda
-resource "aws_lb_target_group" "est_server" {
-  name        = "est-server"
-  target_type = "lambda"
-  vpc_id      = aws_vpc.est_lb_cloud.id
-}
-
-resource "aws_lb_target_group_attachment" "est_pointer" {
-  target_group_arn = aws_lb_target_group.est_server.arn
-  target_id        = aws_lambda_function.est_server.arn
-}
-
-resource "aws_lb_listener" "est_gateway_endpoint" {
-  load_balancer_arn = aws_lb.est_gateway.arn
-  port              = "80"
-  protocol          = "TCP"
-
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.est_server.arn
-  }
-
-}
-
-#give permission to nlb to call lambda
-resource "aws_lambda_permission" "nlb_invocation" {
-  statement_id  = "AllowNLBInvocation"
+resource "aws_lambda_permission" "apigw_lambda" {
+  statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.est_server.function_name
-  principal     = "elasticloadbalancing.amazonaws.com"
-  source_arn    = aws_lb_target_group.est_server.arn
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "${aws_apigatewayv2_api.est_api.execution_arn}/*/*"
 }
 
-#try to fetch AES secret
-data "aws_secretsmanager_secret" "existing_kv" {
-  name = var.kv_name
+output "est_service_url" {
+  value = aws_apigatewayv2_stage.est_gw_stage.invoke_url
 }
 
 #generate a 32-byte AES Key (b64 encoded)
@@ -153,18 +129,15 @@ resource "random_bytes" "aes_iv" {
 #the shit below can defo break tbh
 #create a secret for AES decryption/encryption
 resource "aws_secretsmanager_secret" "kv_encryptor" {
-  count       = try(local.does_secret_exist)
   name        = var.kv_name
   description = "AES 256 Key and IV"
 }
 
 #store KV in Secrets Manager (IF previous secret does not exist)
 resource "aws_secretsmanager_secret_version" "kv_value" {
-  count = try(local.does_secret_exist)
-
-  secret_id = aws_secretsmanager_secret.kv_encryptor[0].id
+  secret_id = aws_secretsmanager_secret.kv_encryptor.id
   secret_string = jsonencode({
-    aes_key = base64encode(random_bytes.aes_key)
-    aes_iv  = base64encode(random_bytes.aes_iv)
+    aes_key = random_bytes.aes_key.base64
+    aes_iv  = random_bytes.aes_iv.base64
   })
 }
