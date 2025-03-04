@@ -50,7 +50,7 @@ resource "aws_iam_role" "est_gw_role" {
     Statement = [{
       Effect = "Allow"
       Principal = {
-        Service = "apigatway.amazonaws.com"
+        Service = "apigateway.amazonaws.com"
       }
       Action = "sts:AssumeRole"
     }]
