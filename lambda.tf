@@ -1,19 +1,3 @@
-data "aws_iam_policy_document" "permissions" {
-  statement {
-    effect = "Allow"
-    principals {
-      type        = "Service"
-      identifiers = ["lambda.amazonaws.com"]
-    }
-    actions = ["sts:AssumeRole"]
-  }
-}
-
-resource "aws_iam_role" "assume_role" {
-  name               = "assume-role"
-  assume_role_policy = aws_iam_policy.est_server_policy.id
-}
-
 resource "aws_iam_policy" "est_server_policy" {
   name        = "est-server-policy"
   description = "Policy for the est lambda"
@@ -55,7 +39,7 @@ resource "aws_iam_policy" "est_server_policy" {
       {
         Effect = "Allow"
         Action = "lambda:InvokeFunction"
-        Resource = aws_lambda_function.est_server.arn
+        Resource = "*"
       }
     ]
   })
@@ -64,6 +48,23 @@ resource "aws_iam_policy" "est_server_policy" {
 resource "aws_iam_role_policy_attachment" "attach_role_est" {
   role       = aws_iam_role.assume_role.name
   policy_arn = aws_iam_policy.est_server_policy.arn
+}
+
+resource "aws_iam_role" "assume_role" {
+  name = "assume-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        },
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
 }
 
 resource "null_resource" "install_dependencies" {
