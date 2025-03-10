@@ -1,7 +1,7 @@
 **EST_Service**
 
 ### Overview
-EST_Service is a Python-based implementation of the Enrollment over Secure Transport (EST) protocol (RFC 7030), designed for cost-effective and automated IoT device enrollment in AWS environments. This deployment is optimized for low-cost, scalable, and efficient device provisioning using an API Gateway and AES encryption to avoid HTTPS certificate costs.
+EST_Service is a CUSTOM Python-based implementation of the Enrollment over Secure Transport (EST) protocol, designed for cost-effective and automated IoT device enrollment in AWS environments. This deployment is optimized for low-cost, scalable, and efficient device provisioning using an API Gateway and AES encryption to avoid HTTPS certificate costs. This is currently NOT a true EST deployment as defined by RFC 7030, explicitly requires HTTPS (HTTP over TLS) as the transport mechanism. Future version will include an alternative HTTPS deployment.
 
 ### How This EST Implementation Works
 - **No HTTPS Overhead:** Uses AES encryption instead of HTTPS to reduce TLS certificate costs.
