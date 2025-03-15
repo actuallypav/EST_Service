@@ -5,6 +5,7 @@ resource "aws_iam_policy" "est_server_policy" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
+      # Allow logging permissions (CloudWatch Logs)
       {
         Effect = "Allow"
         Action = [
@@ -12,18 +13,24 @@ resource "aws_iam_policy" "est_server_policy" {
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ]
-        Resource = "arn:aws:*:${var.region}:${data.aws_caller_identity.current.account_id}:*:*"
+        Resource = "arn:aws:logs:${var.region}:${data.aws_caller_identity.current.account_id}:log-group:*:*"
       },
+
+      # Allow Secrets Manager access
       {
         Effect   = "Allow"
         Action   = ["secretsmanager:GetSecretValue"]
-        Resource = "arn:aws:*:${var.region}:${data.aws_caller_identity.current.account_id}:secret:*"
+        Resource = "arn:aws:secretsmanager:${var.region}:${data.aws_caller_identity.current.account_id}:secret:*"
       },
+
+      # Allow ACM certificate creation
       {
         Effect   = "Allow"
         Action   = ["acm:CreateCertificateFromCsr"]
-        Resource = "arn:aws:*:${var.region}:${data.aws_caller_identity.current.account_id}:*:*"
+        Resource = "arn:aws:acm:${var.region}:${data.aws_caller_identity.current.account_id}:certificate/*"
       },
+
+      # Allow IoT permissions
       {
         Effect = "Allow"
         Action = [
@@ -34,11 +41,13 @@ resource "aws_iam_policy" "est_server_policy" {
           "iot:AttachThingPrincipal",
           "iot:AttachPolicy"
         ]
-        Resource = "arn:aws:*:${var.region}:${data.aws_caller_identity.current.account_id}:*:*"
+        Resource = "arn:aws:iot:${var.region}:${data.aws_caller_identity.current.account_id}:thing/*"
       },
+
+      # Allow Lambda invocation
       {
-        Effect = "Allow"
-        Action = "lambda:InvokeFunction"
+        Effect   = "Allow"
+        Action   = "lambda:InvokeFunction"
         Resource = "*"
       }
     ]
@@ -69,13 +78,13 @@ resource "aws_iam_role" "assume_role" {
 
 resource "null_resource" "install_dependencies" {
   provisioner "local-exec" {
-    command = "pop install -r src/requirements.txt -t src/"
+    command = "pip install -r src/requirements.txt -t src/"
   }
 }
 
 data "archive_file" "python_zip" {
   type        = "zip"
-  source_file = "src"
+  source_dir  = "src"
   output_path = "payload.zip"
 
   depends_on = [null_resource.install_dependencies]

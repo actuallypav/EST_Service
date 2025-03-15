@@ -32,7 +32,7 @@ resource "aws_apigatewayv2_integration" "lambda_integration" {
 
 resource "aws_apigatewayv2_route" "lambda_route" {
   api_id    = aws_apigatewayv2_api.est_api.id
-  route_key = "ANY /{proxy+}"
+  route_key = "ANY /{proxy+}" 
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
 }
 
@@ -58,7 +58,7 @@ resource "aws_iam_role" "est_gw_role" {
 }
 
 resource "aws_iam_policy" "est_gw_policy" {
-  name = "est-gw-policy"
+  name        = "est-gw-policy"
   description = "Allows the EST API Gateway to write logs to Cloudwatch"
 
   policy = jsonencode({
@@ -74,13 +74,13 @@ resource "aws_iam_policy" "est_gw_policy" {
         "logs:GetLogEvents",
         "logs:FilterLogEvents"
       ]
-      resource = aws_cloudwatch_log_group.est_gw_logs.arn
+      Resource = [aws_cloudwatch_log_group.est_gw_logs.arn]
     }]
   })
 }
 
 resource "aws_iam_role_policy_attachment" "est_gw" {
-  role = aws_iam_role.est_gw_role.name
+  role       = aws_iam_role.est_gw_role.name
   policy_arn = aws_iam_policy.est_gw_policy.arn
 }
 
@@ -92,12 +92,12 @@ resource "aws_apigatewayv2_stage" "est_gw_stage" {
   access_log_settings {
     destination_arn = aws_cloudwatch_log_group.est_gw_logs.arn
     format = jsonencode({
-      requestId     = "$context.requestId",
-      ip           = "$context.identity.sourceIp",
-      httpMethod   = "$context.httpMethod",
-      routeKey     = "$context.routeKey",
-      status       = "$context.status",
-      protocol     = "$context.protocol",
+      requestId      = "$context.requestId",
+      ip             = "$context.identity.sourceIp",
+      httpMethod     = "$context.httpMethod",
+      routeKey       = "$context.routeKey",
+      status         = "$context.status",
+      protocol       = "$context.protocol",
       responseLength = "$context.responseLength"
     })
   }
