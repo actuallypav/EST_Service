@@ -96,8 +96,7 @@ resource "aws_lambda_function" "est_server" {
   role          = aws_iam_role.assume_role.arn
 
   source_code_hash = data.archive_file.python_zip.output_base64sha256
-
-  runtime = "python3.10"
+  runtime = "python3.12"
   handler = "server.lambda_handler"
 
   depends_on = [

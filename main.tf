@@ -2,7 +2,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0.0"
+      version = ">= 5.20.0"
     }
   }
 }
@@ -30,14 +30,14 @@ resource "aws_apigatewayv2_integration" "lambda_integration" {
   integration_uri  = aws_lambda_function.est_server.invoke_arn
 }
 
-resource "aws_apigatewayv2_route" "lambda_route" {
+resource "aws_apigatewayv2_route" "lambda_root" {
   api_id    = aws_apigatewayv2_api.est_api.id
-  route_key = "ANY /{proxy+}" 
+  route_key = "ANY /"
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
 }
 
 resource "aws_cloudwatch_log_group" "est_gw_logs" {
-  name              = "/aws/apigatewayv2/example-api"
+  name              = "/aws/apigatewayv2/gateway-logs"
   retention_in_days = 7
 }
 
@@ -109,7 +109,7 @@ resource "aws_lambda_permission" "apigw_lambda" {
   function_name = aws_lambda_function.est_server.function_name
   principal     = "apigateway.amazonaws.com"
 
-  source_arn = "${aws_apigatewayv2_api.est_api.execution_arn}/*/*"
+  source_arn = "${aws_apigatewayv2_api.est_api.execution_arn}/*"
 }
 
 output "est_service_url" {
