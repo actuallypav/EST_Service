@@ -14,9 +14,9 @@ def lambda_handler(event, context):
     try:
         source_ip = event["requestContext"]["http"]["sourceIp"]
 
-        kv_name = os.environ.get["KV_NAME"]
-        region = os.environ.get["REGION"]
-        root_ca_url = os.environ.get["ROOT_CA_URL"]
+        kv_name = os.environ.get("KV_NAME")
+        region = os.environ.get("REGION")
+        root_ca_url = os.environ.get("ROOT_CA_URL")
 
         account_id = boto3.client("sts").get_caller_identity().get("Account")
 
@@ -60,15 +60,15 @@ def decrypt_csr(ciphertext, account_id, region, kv_name):
     kv_dict = json.loads(kv["SecretString"])
 
     # b64 decode all
-    key = base64.b64decode(kv["aes_key"])
-    iv = base64.b64decode(kv["aes_iv"])
+    key = base64.b64decode(kv_dict["aes_key"])
+    iv = base64.b64decode(kv_dict["aes_iv"])
 
     ciphertext = base64.b64decode(ciphertext)
 
     # decrypt with AES
     cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
     decryptor = cipher.decryptor()
-    plaintext_padded = decryptor.update(plaintext_padded) + decryptor.finalize()
+    plaintext_padded = decryptor.update(ciphertext) + decryptor.finalize()
 
     unpadder = PKCS7(128).unpadder()
     plaintext = unpadder.update(plaintext_padded) + unpadder.finalize()
@@ -109,9 +109,9 @@ def sign_csr(csr):
     iot = boto3.client("iot")
 
     response = iot.create_certificate_from_csr(
-        certifacteSigningRequest=csr.public_bytes(
+        certificateSigningRequest=csr.public_bytes(
             encoding=serialization.Encoding.PEM
-        ).decode(),
+        ),
         setAsActive=True,
     )
 
