@@ -11,7 +11,12 @@ resource "aws_iam_policy" "est_server_policy" {
         Action = [
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
-          "logs:PutLogEvents"
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams",
+          "logs:DescribeLogStreams",
+          "logs:DescribeLogGroups",
+          "logs:PutRetentionPolicy",
+          "logs:GetLogEvents"
         ]
         Resource = "arn:aws:logs:${var.region}:${data.aws_caller_identity.current.account_id}:log-group:*:*"
       },
