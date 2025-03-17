@@ -25,9 +25,10 @@ resource "aws_apigatewayv2_api" "est_api" {
 }
 
 resource "aws_apigatewayv2_integration" "lambda_integration" {
-  api_id           = aws_apigatewayv2_api.est_api.id
-  integration_type = "AWS_PROXY"
-  integration_uri  = aws_lambda_function.est_server.invoke_arn
+  api_id             = aws_apigatewayv2_api.est_api.id
+  integration_type   = "AWS_PROXY"
+  integration_uri    = aws_lambda_function.est_server.invoke_arn
+  integration_method = "POST"
 }
 
 resource "aws_apigatewayv2_route" "lambda_root" {
@@ -131,6 +132,11 @@ resource "random_bytes" "aes_iv" {
 resource "aws_secretsmanager_secret" "kv_encryptor" {
   name        = var.kv_name
   description = "AES 256 Key and IV"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+
 }
 
 #store KV in Secrets Manager (IF previous secret does not exist)
@@ -140,4 +146,7 @@ resource "aws_secretsmanager_secret_version" "kv_value" {
     aes_key = random_bytes.aes_key.base64
     aes_iv  = random_bytes.aes_iv.base64
   })
+  lifecycle {
+    ignore_changes = [secret_string] # Avoid replacing the secret version on every apply
+  }
 }

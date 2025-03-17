@@ -96,8 +96,8 @@ resource "aws_lambda_function" "est_server" {
   role          = aws_iam_role.assume_role.arn
 
   source_code_hash = data.archive_file.python_zip.output_base64sha256
-  runtime = "python3.12"
-  handler = "server.lambda_handler"
+  runtime          = "python3.12"
+  handler          = "server.lambda_handler"
 
   depends_on = [
     aws_cloudwatch_log_group.lambda_outputs
