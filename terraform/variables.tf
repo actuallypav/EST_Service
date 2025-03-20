@@ -17,3 +17,8 @@ variable "region" {
   description = "The region the tf runs in"
   type        = string
 }
+
+variable "est_domain" {
+  description = "Route 53 domain name used for the est"
+  type        = string
+}
