@@ -35,6 +35,8 @@ resource "aws_apigatewayv2_route" "lambda_root" {
   api_id    = aws_apigatewayv2_api.est_api.id
   route_key = "ANY /{proxy+}"
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
+  
+  authorization_type = "NONE"
 }
 
 resource "aws_cloudwatch_log_group" "est_gw_logs" {
@@ -93,13 +95,13 @@ resource "aws_apigatewayv2_stage" "est_gw_stage" {
   access_log_settings {
     destination_arn = aws_cloudwatch_log_group.est_gw_logs.arn
     format = jsonencode({
-      requestId      = "$context.requestId",
-      ip             = "$context.identity.sourceIp",
-      httpMethod     = "$context.httpMethod",
-      routeKey       = "$context.routeKey",
-      status         = "$context.status",
-      protocol       = "$context.protocol",
-      responseLength = "$context.responseLength",
+      requestId        = "$context.requestId",
+      ip               = "$context.identity.sourceIp",
+      httpMethod       = "$context.httpMethod",
+      routeKey         = "$context.routeKey",
+      status           = "$context.status",
+      protocol         = "$context.protocol",
+      responseLength   = "$context.responseLength",
       requestTime      = "$context.requestTime",
       userAgent        = "$context.identity.userAgent",
       integrationError = "$context.integration.error"
@@ -150,6 +152,6 @@ resource "aws_secretsmanager_secret_version" "kv_value" {
     aes_iv  = random_bytes.aes_iv.base64
   })
   lifecycle {
-    ignore_changes = [secret_string] # Avoid replacing the secret version on every apply
+    ignore_changes = [secret_string]
   }
 }

@@ -83,13 +83,13 @@ resource "aws_iam_role" "assume_role" {
 
 resource "null_resource" "install_dependencies" {
   provisioner "local-exec" {
-    command = "pip install -r src/requirements.txt -t src/"
+    command = "pip install -r ../src/requirements.txt -t ..src/"
   }
 }
 
 data "archive_file" "python_zip" {
   type        = "zip"
-  source_dir  = "src"
+  source_dir  = "../src"
   output_path = "payload.zip"
 
   depends_on = [null_resource.install_dependencies]
