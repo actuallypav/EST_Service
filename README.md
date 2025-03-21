@@ -25,7 +25,6 @@ EST_Service is a Python-based implementation of the Enrollment over Secure Trans
 ### Usage
 1. Deploy AWS resources using Terraform.
 2. Run `client.py` on IoT devices to securely request certificates.
-3. The archive folder contains legacy code and is not needed. See the repo for full details.
 
 <img src="/img/EST-certificate-enrollement.png" alt="*Source: Sectigo*">
 <sup><sub>Source: Sectigo</sub></sup>
