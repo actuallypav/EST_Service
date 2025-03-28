@@ -35,7 +35,7 @@ resource "aws_apigatewayv2_route" "lambda_root" {
   api_id    = aws_apigatewayv2_api.est_api.id
   route_key = "ANY /{proxy+}"
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
-  
+
   authorization_type = "NONE"
 }
 
