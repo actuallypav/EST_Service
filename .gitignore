@@ -1,4 +1,6 @@
 terraform/variables.tfvars
+terraform/.terraform.lock.hcl
+terraform/.terraform
 client/config_client.json
 src/charset_normalizer
 src/charset_normalizer-3.4.1.dist-info
