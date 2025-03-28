@@ -5,7 +5,7 @@ import base64
 import cryptography.hazmat.primitives.serialization as serialization
 import cryptography.hazmat.primitives.hashes as hashes
 import cryptography.hazmat.primitives.asymmetric.rsa as rsa
-from cryptography.x509.oid import ObjectIdentifier
+from cryptography.x509.oid import ObjectIdentifier, NameOID
 from cryptography import x509
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 import boto3
@@ -26,30 +26,25 @@ def parse_config(file_path):
 def generate_csr(OID_content):
     private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
-    #the ascii for "deits"
-    custom_oid = ObjectIdentifier("100.101.105.116.115")
-    OID_content_json = json.dumps(OID_content)
+    #use unrecognized oid - or request one for your purposes
+    custom_oid = ObjectIdentifier("0.5.100.101.105.116.115")
+    OID_content_json = json.dumps(OID_content).encode()
 
-    csr = (
-        x509.CertificateSigningRequestBuilder()
-        .subject_name(
-            x509.Name(
-                [
-                    x509.NameAttribute(x509.oid.NameOID.COUNTRY_NAME, "UK"),
-                    x509.NameAttribute(
-                        x509.oid.NameOID.STATE_OR_PROVINCE_NAME, "Cumbria"
-                    ),
-                    x509.NameAttribute(x509.oid.NameOID.LOCALITY_NAME, "Keswick"),
-                    x509.NameAttribute(x509.oid.NameOID.ORGANIZATION_NAME, "PavInc"),
-                    x509.NameAttribute(
-                        x509.oid.NameOID.COMMON_NAME, "github.com/actuallypav"
-                    ),
-                    x509.NameAttribute(custom_oid, OID_content_json)
-                ]
-            )
-        )
-        .sign(private_key, hashes.SHA256())
+    custom_extension = x509.UnrecognizedExtension(custom_oid, OID_content_json)
+
+    csr_builder = x509.CertificateSigningRequestBuilder().subject_name(
+        x509.Name([
+            x509.NameAttribute(x509.oid.NameOID.COUNTRY_NAME, "UK"),
+            x509.NameAttribute(x509.oid.NameOID.STATE_OR_PROVINCE_NAME, "Cumbria"),
+            x509.NameAttribute(x509.oid.NameOID.LOCALITY_NAME, "Keswick"),
+            x509.NameAttribute(x509.oid.NameOID.ORGANIZATION_NAME, "PavInc"),
+            x509.NameAttribute(x509.oid.NameOID.COMMON_NAME, "github.com/actuallypav")
+        ])
     )
+
+    csr_builder = csr_builder.add_extension(custom_extension, critical=False)
+
+    csr = csr_builder.sign(private_key, hashes.SHA256())
 
     with open("private_key.pem", "wb") as key_file:
         key_file.write(
@@ -103,7 +98,6 @@ def get_pem(csr, api_gateway_url):
     else:
         print(f"ERROR: {response.status_code}, {response.text}")
         return {}
-
 
 def main():
     #read the config file for this IoT "VERY IMPORTANY"
