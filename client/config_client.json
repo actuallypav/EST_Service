@@ -1,35 +1,41 @@
 {
+    "ESTDetails": {
+        "ESTAPIURL": "api.domain.com",
+        "Region": "eu-west-2",
+        "KV_Name": "AES_kv"
+    },
     "IoTDetails": {
         "ThingName": "Megatron",
-        "ESTAPIURL": "api.domain.com",
-        "TopicGetRetainedMessage": {
-            "Name1": "Test1",
-            "Name2": "Test2"
-        },
-        "TopicPublish": {
-            "Name1": "Test1",
-            "Name2": "Test2"
-        },
-        "TopicReceive": {
-            "Name1": "Test1",
-            "Name2": "Test2"
-        },
-        "TopicRetainPublish": {
-            "Name1": "Test1",
-            "Name2": "Test2"
-        },
-        "TopicSubscribe": {
-            "Name1": "Test1",
-            "Name2": "Test2"
+        "AWSIoTPolicies": {
+            "Connect": true,
+            "GetRetainedMessage": false,
+            "ListRetainedMessages": false,
+            "Publish": true,
+            "Receive": false,
+            "RetainPublish": false,
+            "Subscribe": false,
+            "Topics" : {
+                "TopicGetRetainedMessage": {
+                    "Name1": "Test1",
+                    "Name2": "Test2"
+                },
+                "TopicPublish": {
+                    "Name1": "Test1",
+                    "Name2": "Test2"
+                },
+                "TopicReceive": {
+                    "Name1": "Test1",
+                    "Name2": "Test2"
+                },
+                "TopicRetainPublish": {
+                    "Name1": "Test1",
+                    "Name2": "Test2"
+                },
+                "TopicSubscribe": {
+                    "Name1": "Test1",
+                    "Name2": "Test2"
+                }
+            }
         }
-    }, 
-    "AWSIoTPolicies": {
-        "Connect": true,
-        "GetRetainedMessage": false,
-        "ListRetainedMessages": false,
-        "Publish": true,
-        "Receive": false,
-        "RetainPublish": false,
-        "Subscribe": false
     }
 }

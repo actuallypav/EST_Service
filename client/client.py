@@ -5,6 +5,7 @@ import base64
 import cryptography.hazmat.primitives.serialization as serialization
 import cryptography.hazmat.primitives.hashes as hashes
 import cryptography.hazmat.primitives.asymmetric.rsa as rsa
+from cryptography.x509.oid import ObjectIdentifier
 from cryptography import x509
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 import boto3
@@ -12,19 +13,22 @@ import json
 import requests
 
 
-def parse_tfvars(file_path):
-    variables = {}
+def parse_config(file_path):
     with open(file_path, "r") as file:
-        for line in file:
-            line = line.strip()
-            if line and not line.startswith("#"):
-                key, value = map(str.strip, line.split("=", 1))
-                variables[key] = value.strip('"')
-    return variables["region"], variables["kv_name"]
+        data = json.load(file)
+    est_api_url = data["ESTDetails"]["ESTAPIURL"]
+    region = data["ESTDetails"]["Region"]
+    KV_name = data["ESTDetails"]["KV_Name"]
+    OID_content = data["IoTDetails"]
+    return region, KV_name, est_api_url, OID_content
 
 
-def generate_csr():
+def generate_csr(OID_content):
     private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+
+    #the ascii for "deits"
+    custom_oid = ObjectIdentifier("100.101.105.116.115")
+    OID_content_json = json.dumps(OID_content)
 
     csr = (
         x509.CertificateSigningRequestBuilder()
@@ -40,6 +44,7 @@ def generate_csr():
                     x509.NameAttribute(
                         x509.oid.NameOID.COMMON_NAME, "github.com/actuallypav"
                     ),
+                    x509.NameAttribute(custom_oid, OID_content_json)
                 ]
             )
         )
@@ -87,9 +92,7 @@ def retrieve_kv(region, kv_name):
     return key, iv
 
 
-def get_pem(csr):
-    api_gateway_url = ""
-
+def get_pem(csr, api_gateway_url):
     headers = {"Content-Type": "application/json"}
     payload = {"csr": csr}
 
@@ -103,11 +106,13 @@ def get_pem(csr):
 
 
 def main():
+    #read the config file for this IoT "VERY IMPORTANY"
+    region, kv_name, api_gateway_url, OID_content = parse_config("config_client.json")
+
     # generate CSR
-    csr_data = generate_csr()
+    csr_data = generate_csr(OID_content)
 
     # recover key/iv from secrets
-    region, kv_name = parse_tfvars("../terraform.tfvars")
     key, iv = retrieve_kv(region, kv_name)
 
     # encrypt CSR
@@ -116,7 +121,7 @@ def main():
     # encode with Base64
     b64_encoded_csr = base64.b64encode(encrypted_csr).decode()
 
-    response = get_pem(b64_encoded_csr).get("body", "")
+    response = get_pem((b64_encoded_csr).get("body", ""), api_gateway_url)
     response_json = response.json()
     root_ca = base64.b64decode(response_json.get("root_ca", "")).decode()
     cert_pem = base64.b64decode(response_json.get("cert_pem", "")).decode()
