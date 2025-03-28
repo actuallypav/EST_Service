@@ -8,11 +8,15 @@ from cryptography.hazmat.primitives.asymmetric import padding
 import requests
 import boto3
 import os
+import logging
 
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
 
 def lambda_handler(event, context):
     try:
         source_ip = event["requestContext"]["http"]["sourceIp"]
+        logger.info(f"Received request from IP: {source_ip}")
 
         kv_name = os.environ.get("KV_NAME")
         region = os.environ.get("REGION")
@@ -26,10 +30,15 @@ def lambda_handler(event, context):
                 "body": json.dumps({"error": "No CSR data received"}),
             }
 
-        csr_aes = base64.b64decode(event["body"])
 
-        csr_pem = decrypt_csr(csr_aes, account_id, region, kv_name).encode()
+        csr_aes = base64.b64decode(event["body"])
+        logger.debug(f"CSR Content with AES: {str(csr_aes)}")
+
+        csr_pem = decrypt_csr(csr_aes, account_id, region, kv_name)
+        logger.debug(f"Decrypted CSR (PEM Format): {str(csr_pem.decode())}")
+
         csr = x509.load_pem_x509_csr(csr_pem)
+        logger.debug(f"CSR Sreucture: {csr}")
 
         verify_csr(csr)
 
@@ -39,6 +48,7 @@ def lambda_handler(event, context):
         # send the signed stuff back to the client
 
         response_data = {"root_ca": root_ca, "cert_pem": cert_pem}
+        logger.info("Successfully signed the CSR and prepared response.")
 
         return {
             "statusCode": 200,
@@ -46,6 +56,7 @@ def lambda_handler(event, context):
             "body": base64.b64encode(json.dumps(response_data).encode()),
         }
     except Exception as e:
+        logger.error(f"ERROR: {str(e)}")
         return {"statusCode": 500, "body": json.dumps({"ERROR": str(e)})}
 
 
@@ -73,6 +84,7 @@ def decrypt_csr(ciphertext, account_id, region, kv_name):
     unpadder = PKCS7(128).unpadder()
     plaintext = unpadder.update(plaintext_padded) + unpadder.finalize()
 
+    logger.debug(f"Decrypted plaintext (raw): {plaintext}")
     return plaintext.decode()
 
 
@@ -90,22 +102,23 @@ def verify_csr(csr):
     except Exception as e:
         print("CSR verification failed ", e)
 
-        # TODO: Return error to the client - for now just quit lambda
+        logger.error(f"CSR verification failed: {e}")
         raise Exception("Forced Lambda exit - can't verify CSR")
 
 
 def download_root_ca(ca_url):
     response = requests.get(ca_url)
     if response.status_code == 200:
+        logger.debug(f"Root CA received: {response.content[:100]}...")
         return response.content
     else:
-        print("Error retriving Amazon Root CA")
-        # TODO: Return error to the client - for now just quit lambda
+        logger.error("Error retrieving Amazon Root CA.")
         raise Exception("Forced Lambda exit - can't verify CSR")
 
 
 def sign_csr(csr):
     # sign csr
+    logger.info("Signing CSR...")
     iot = boto3.client("iot")
 
     response = iot.create_certificate_from_csr(
@@ -118,6 +131,9 @@ def sign_csr(csr):
     cert_arn = response["certificateARN"]
     cert_pem = response["certificatePem"]
 
+    logger.debug(f"Certificate ARN: {cert_arn}")
+    logger.debug(f"Certificate PEM: {cert_pem}")
+
     # TODO: Retrive name/policies from OID for now just make default ones
     thing_name = "IoTPavTest"
     policy_name = "IoTPavTestPolicy"
@@ -125,16 +141,16 @@ def sign_csr(csr):
     # Verify the above exists - if not create
     try:
         iot.describe_thing(thingName=thing_name)
-        print(f"Thing '{thing_name}' exists.")
+        logger.debug(f"Thing '{thing_name}' exists.")
     except iot.exceptions.ResourceNotFoundException:
-        print(f"Thing '{thing_name}' does not exist. Creating it now...")
+        logger.debug(f"Thing '{thing_name}' does not exist. Creating it now...")
         iot.create_thing(thingName=thing_name)
 
     try:
         iot.get_policy(policyName=policy_name)
-        print(f"Policy '{policy_name}' exists.")
+        logger.debug(f"Policy '{policy_name}' exists.")
     except iot.exceptions.ResourceNotFoundException:
-        print(f"Policy '{policy_name}' does not exist. Creating it now...")
+        logger.debug(f"Policy '{policy_name}' does not exist. Creating it now...")
         policy_document = {
             "Version": "2012-10-17",
             "Statement": [
@@ -146,7 +162,7 @@ def sign_csr(csr):
         )
 
     iot.attach_thing_principal(thingName=thing_name, principal=cert_arn)
-
     iot.attach_policy(policyName=policy_name, target=cert_arn)
-
+    
+    logger.debug("CSR signed and policies attached.")
     return cert_pem
