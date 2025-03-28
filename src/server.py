@@ -9,13 +9,15 @@ import requests
 import boto3
 import os
 import logging
+import traceback
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
 def lambda_handler(event, context):
+    logger.info(f"{event}")
     try:
-        source_ip = event["requestContext"]["http"]["sourceIp"]
+        source_ip = event["requestContext"]["identity"]["sourceIp"]
         logger.info(f"Received request from IP: {source_ip}")
 
         kv_name = os.environ.get("KV_NAME")
@@ -29,16 +31,20 @@ def lambda_handler(event, context):
                 "statusCode": 400,
                 "body": json.dumps({"error": "No CSR data received"}),
             }
+        
+        body_str = event["body"]
+        body = json.loads(body_str)
 
+        logger.info(body)
 
-        csr_aes = base64.b64decode(event["body"])
+        csr_aes = base64.b64decode(body["requestBody"])
         logger.debug(f"CSR Content with AES: {str(csr_aes)}")
 
         csr_pem = decrypt_csr(csr_aes, account_id, region, kv_name)
-        logger.debug(f"Decrypted CSR (PEM Format): {str(csr_pem.decode())}")
+        logger.debug(f"Decrypted CSR (PEM Format): {csr_pem}")
 
-        csr = x509.load_pem_x509_csr(csr_pem)
-        logger.debug(f"CSR Sreucture: {csr}")
+        csr = x509.load_pem_x509_csr(csr_pem.encode('utf-8'))
+        logger.debug(f"CSR Structure: {csr}")
 
         verify_csr(csr)
 
@@ -56,8 +62,16 @@ def lambda_handler(event, context):
             "body": base64.b64encode(json.dumps(response_data).encode()),
         }
     except Exception as e:
-        logger.error(f"ERROR: {str(e)}")
-        return {"statusCode": 500, "body": json.dumps({"ERROR": str(e)})}
+        error_message = str(e)
+        stack_trace = traceback.format_exc()
+
+        logger.error(f"ERROR: {error_message}")
+        logger.error(f"Stack trace:\n{stack_trace}")
+
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"ERROR": error_message, "STACK_TRACE": stack_trace}),
+        }
 
 
 def decrypt_csr(ciphertext, account_id, region, kv_name):
@@ -163,6 +177,6 @@ def sign_csr(csr):
 
     iot.attach_thing_principal(thingName=thing_name, principal=cert_arn)
     iot.attach_policy(policyName=policy_name, target=cert_arn)
-    
+
     logger.debug("CSR signed and policies attached.")
     return cert_pem

@@ -26,7 +26,7 @@ def parse_config(file_path):
 def generate_csr(OID_content):
     private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
-    #use unrecognized oid - or request one for your purposes
+    #use unrecognized oid - or request one for your purposes and replace
     custom_oid = ObjectIdentifier("0.5.100.101.105.116.115")
     OID_content_json = json.dumps(OID_content).encode()
 
@@ -81,23 +81,39 @@ def retrieve_kv(region, kv_name):
     kv_dict = json.loads(kv["SecretString"])
 
     # b64 decode all
-    key = base64.b64decode(kv["aes_key"])
-    iv = base64.b64decode(kv["aes_iv"])
+    key = base64.b64decode(kv_dict["aes_key"])
+    iv = base64.b64decode(kv_dict["aes_iv"])
 
     return key, iv
 
-
 def get_pem(csr, api_gateway_url):
-    headers = {"Content-Type": "application/json"}
-    payload = {"csr": csr}
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.settimeout(0)
+    try:
+        s.connect(('10.254.254.254', 1))
+        local_ip = s.getsockname()[0]
+    except Exception:
+        local_ip = "127.0.0.1"
+    finally:
+        s.close()
 
-    response = requests.post(api_gateway_url, json=payload, headers=headers)
+    base64_csr = base64.b64encode(csr.encode()).decode()
+
+    body = {
+        "requestBody": base64_csr,
+    }
+
+    header = {
+        "Content-Type": "application/json"
+    }
+
+    response = requests.post(api_gateway_url, json=body, headers=header)
 
     if response.status_code == 200:
+        print("Response:", response.json()) 
         return response.json()
     else:
         print(f"ERROR: {response.status_code}, {response.text}")
-        return {}
 
 def main():
     #read the config file for this IoT "VERY IMPORTANY"
@@ -112,21 +128,26 @@ def main():
     # encrypt CSR
     encrypted_csr = encrypt_aes256(csr_data, key, iv)
 
-    # encode with Base64
-    b64_encoded_csr = base64.b64encode(encrypted_csr).decode()
+    # encode with Base64 (CSR is already in bytes, so it should be converted to Base64 string)
+    b64_decoded_csr = base64.b64encode(encrypted_csr).decode()
 
-    response = get_pem((b64_encoded_csr).get("body", ""), api_gateway_url)
-    response_json = response.json()
-    root_ca = base64.b64decode(response_json.get("root_ca", "")).decode()
-    cert_pem = base64.b64decode(response_json.get("cert_pem", "")).decode()
+    # send the CSR to the server and get PEM
+    response = get_pem(b64_decoded_csr, api_gateway_url)
 
-    with open("root_ca.pem", "w") as r:
-        r.write(root_ca)
+    # handle the response and save certificates
+    if response:
+        root_ca = base64.b64decode(response.get("root_ca", "")).decode()
+        cert_pem = base64.b64decode(response.get("cert_pem", "")).decode()
 
-    with open("certificate.pem", "w") as c:
-        c.write(cert_pem)
+        with open("root_ca.pem", "w") as r:
+            r.write(root_ca)
 
-    print("Success find the certificates here!")
+        with open("certificate.pem", "w") as c:
+            c.write(cert_pem)
+
+        print("Success find the certificates here!")
+    else:
+        print("it shat the bed")
 
 
 if __name__ == "__main__":

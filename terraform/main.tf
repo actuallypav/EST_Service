@@ -33,7 +33,7 @@ resource "aws_apigatewayv2_integration" "lambda_integration" {
 
 resource "aws_apigatewayv2_route" "lambda_root" {
   api_id    = aws_apigatewayv2_api.est_api.id
-  route_key = "ANY /{proxy+}"
+  route_key = "ANY /"
   target    = "integrations/${aws_apigatewayv2_integration.lambda_integration.id}"
 
   authorization_type = "NONE"
@@ -104,7 +104,12 @@ resource "aws_apigatewayv2_stage" "est_gw_stage" {
       responseLength   = "$context.responseLength",
       requestTime      = "$context.requestTime",
       userAgent        = "$context.identity.userAgent",
-      integrationError = "$context.integration.error"
+      integrationError = "$context.integration.error",
+      errorMessage     = "$context.integration.errorMessage",
+      requestBody      = "$input.body",
+      responseBody     = "$output.body",
+      requestHeaders   = "$input.headers",
+      responseHeaders  = "$output.headers"
     })
   }
 }
