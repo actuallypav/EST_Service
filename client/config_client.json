@@ -1,7 +1,7 @@
 {
     "ESTDetails": {
         "ESTAPIURL": "https://api.domain.com",
-        "KV_name": "AES",
+        "KV_Name": "AES",
         "Region": "eu-west-2"
     },
     "IoTDetails": {
