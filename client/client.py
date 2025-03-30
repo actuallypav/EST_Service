@@ -93,7 +93,6 @@ def retrieve_kv(region, kv_name):
 
 
 def get_pem(csr, api_gateway_url):
-    def get_pem(csr, api_gateway_url):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.settimeout(0)
     try:
