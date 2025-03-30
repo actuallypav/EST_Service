@@ -1,0 +1,39 @@
+{
+    "ESTDetails": {
+        "ESTAPIURL": "https://api.domain.com",
+        "KV_name": "AES",
+        "Region": "eu-west-2"
+    },
+    "IoTDetails": {
+        "ThingName": "Megatron",
+        "TopicGetRetainedMessage": {
+            "Name1": "Test1",
+            "Name2": "Test2"
+        },
+        "TopicPublish": {
+            "Name1": "Test1",
+            "Name2": "Test2"
+        },
+        "TopicReceive": {
+            "Name1": "Test1",
+            "Name2": "Test2"
+        },
+        "TopicRetainPublish": {
+            "Name1": "Test1",
+            "Name2": "Test2"
+        },
+        "TopicSubscribe": {
+            "Name1": "Test1",
+            "Name2": "Test2"
+        },
+        "AWSIoTPolicies": {
+        "Connect": true,
+        "GetRetainedMessage": false,
+        "ListRetainedMessages": false,
+        "Publish": true,
+        "Receive": false,
+        "RetainPublish": false,
+        "Subscribe": false
+        }
+    }
+}
