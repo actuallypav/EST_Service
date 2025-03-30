@@ -8,8 +8,10 @@ from cryptography.hazmat.primitives.asymmetric import padding
 import requests
 import boto3
 import os
-import logger
+import logging
 
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
 
 def lambda_handler(event, context):
     try:
