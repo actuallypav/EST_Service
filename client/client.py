@@ -27,14 +27,14 @@ def parse_config(file_path):
 def generate_csr(OID_content):
     private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
-    #create a custom OID using a non existing OID - register one if you care
+    #use unrecognized oid - or request one for your purposes and replace
     custom_oid = ObjectIdentifier("0.5.100.101.105.116.115")
     OID_content_json = json.dumps(OID_content).encode()
 
     custom_extension = x509.UnrecognizedExtension(custom_oid, OID_content_json)
 
     csr_builder = x509.CertificateSigningRequestBuilder().subject_name(
-        x509.Name([ 
+        x509.Name([
             x509.NameAttribute(x509.oid.NameOID.COUNTRY_NAME, "UK"),
             x509.NameAttribute(x509.oid.NameOID.STATE_OR_PROVINCE_NAME, "Cumbria"),
             x509.NameAttribute(x509.oid.NameOID.LOCALITY_NAME, "Keswick"),
@@ -45,11 +45,7 @@ def generate_csr(OID_content):
 
     csr_builder = csr_builder.add_extension(custom_extension, critical=False)
 
-    csr = csr_builder.sign(
-        private_key,
-        padding.PKCS1v15(), 
-        hashes.SHA256(),
-    )
+    csr = csr_builder.sign(private_key, hashes.SHA256())
 
     with open("private_key.pem", "wb") as key_file:
         key_file.write(
@@ -61,7 +57,6 @@ def generate_csr(OID_content):
         )
 
     return csr.public_bytes(serialization.Encoding.PEM)
-
 
 def encrypt_aes256(data, key, iv):
     cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
@@ -86,8 +81,8 @@ def retrieve_kv(region, kv_name):
     kv_dict = json.loads(kv["SecretString"])
 
     # b64 decode all
-    key = base64.b64decode(kv["aes_key"])
-    iv = base64.b64decode(kv["aes_iv"])
+    key = base64.b64decode(kv_dict["aes_key"])
+    iv = base64.b64decode(kv_dict["aes_iv"])
 
     return key, iv
 
@@ -139,16 +134,18 @@ def main():
     # encode with Base64
     b64_encoded_csr = base64.b64encode(encrypted_csr).decode()
 
-    response = get_pem((b64_encoded_csr).get("body", ""), api_gateway_url)
-    response_json = response.json()
-    root_ca = base64.b64decode(response_json.get("root_ca", "")).decode()
-    cert_pem = base64.b64decode(response_json.get("cert_pem", "")).decode()
+    response = get_pem(b64_encoded_csr, api_gateway_url)
+    print(response)
+    
+    # response_json = response.json()
+    # root_ca = base64.b64decode(response_json.get("root_ca", "")).decode()
+    # cert_pem = base64.b64decode(response_json.get("cert_pem", "")).decode()
 
-    with open("root_ca.pem", "w") as r:
-        r.write(root_ca)
+    # with open("root_ca.pem", "w") as r:
+    #     r.write(root_ca)
 
-    with open("certificate.pem", "w") as c:
-        c.write(cert_pem)
+    # with open("certificate.pem", "w") as c:
+        # c.write(cert_pem)
 
     print("Success find the certificates here!")
 

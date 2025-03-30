@@ -9,6 +9,7 @@ import requests
 import boto3
 import os
 import logging
+import traceback
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -35,9 +36,9 @@ def lambda_handler(event, context):
         logger.debug(f"CSR Content with AES: {str(csr_aes)}")
 
         csr_pem = decrypt_csr(csr_aes, account_id, region, kv_name)
-        logger.debug(f"Decrypted CSR (PEM Format): {str(csr_pem.decode())}")
+        logger.debug(f"Decrypted CSR (PEM Format): {(csr_pem)}")
 
-        csr = x509.load_pem_x509_csr(csr_pem)
+        csr = x509.load_pem_x509_csr(csr_pem.encode('utf-8'))
         logger.debug(f"CSR Structure: {csr}")
 
         verify_csr(csr)
@@ -56,6 +57,7 @@ def lambda_handler(event, context):
 
     except Exception as e:
         logger.error(f"ERROR: {str(e)}")
+        logger.error("Traceback: %s", traceback.format_exc())
         return {"statusCode": 500, "body": json.dumps({"ERROR": str(e)})}
 
 
