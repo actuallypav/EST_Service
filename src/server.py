@@ -8,11 +8,13 @@ from cryptography.hazmat.primitives.asymmetric import padding
 import requests
 import boto3
 import os
+import logger
 
 
 def lambda_handler(event, context):
     try:
-        source_ip = event["requestContext"]["http"]["sourceIp"]
+        source_ip = event["requestContext"]["identity"]["sourceIp"]
+        logger.info(f"Received request from IP: {source_ip}")
 
         kv_name = os.environ.get("KV_NAME")
         region = os.environ.get("REGION")
@@ -26,26 +28,32 @@ def lambda_handler(event, context):
                 "body": json.dumps({"error": "No CSR data received"}),
             }
 
-        csr_aes = base64.b64decode(event["body"])
+        body = json.loads(event["body"])
+        csr_aes = base64.b64decode(body["requestBody"])
+        logger.debug(f"CSR Content with AES: {str(csr_aes)}")
 
-        csr_pem = decrypt_csr(csr_aes, account_id, region, kv_name).encode()
+        csr_pem = decrypt_csr(csr_aes, account_id, region, kv_name)
+        logger.debug(f"Decrypted CSR (PEM Format): {str(csr_pem.decode())}")
+
         csr = x509.load_pem_x509_csr(csr_pem)
+        logger.debug(f"CSR Structure: {csr}")
 
         verify_csr(csr)
 
         root_ca = download_root_ca(root_ca_url)
         cert_pem = sign_csr(csr)
 
-        # send the signed stuff back to the client
-
         response_data = {"root_ca": root_ca, "cert_pem": cert_pem}
+        logger.info("Successfully signed the CSR and prepared response.")
 
         return {
             "statusCode": 200,
             "headers": {"Content-Type": "application/json"},
-            "body": base64.b64encode(json.dumps(response_data).encode()),
+            "body": base64.b64encode(json.dumps(response_data).encode()).decode(),
         }
+
     except Exception as e:
+        logger.error(f"ERROR: {str(e)}")
         return {"statusCode": 500, "body": json.dumps({"ERROR": str(e)})}
 
 
