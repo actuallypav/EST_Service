@@ -25,5 +25,5 @@ variable "est_domain" {
 
 variable "oid" {
   description = "The OID for the extension in the csr sent to the server from the client"
-  type = string
+  type        = string
 }

@@ -133,7 +133,7 @@ resource "aws_lambda_function" "est_server" {
       KV_NAME     = var.kv_name
       REGION      = var.region
       ROOT_CA_URL = var.root_ca_url
-      OID = var.oid
+      OID         = var.oid
     }
   }
 }
