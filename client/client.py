@@ -27,20 +27,24 @@ def parse_config(file_path):
 def generate_csr(OID_content):
     private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
-    #use unrecognized oid - or request one for your purposes and replace
+    # use unrecognized oid - or request one for your purposes and replace
     custom_oid = ObjectIdentifier("0.5.100.101.105.116.115")
     OID_content_json = json.dumps(OID_content).encode()
 
     custom_extension = x509.UnrecognizedExtension(custom_oid, OID_content_json)
 
     csr_builder = x509.CertificateSigningRequestBuilder().subject_name(
-        x509.Name([
-            x509.NameAttribute(x509.oid.NameOID.COUNTRY_NAME, "UK"),
-            x509.NameAttribute(x509.oid.NameOID.STATE_OR_PROVINCE_NAME, "Cumbria"),
-            x509.NameAttribute(x509.oid.NameOID.LOCALITY_NAME, "Keswick"),
-            x509.NameAttribute(x509.oid.NameOID.ORGANIZATION_NAME, "PavInc"),
-            x509.NameAttribute(x509.oid.NameOID.COMMON_NAME, "github.com/actuallypav")
-        ])
+        x509.Name(
+            [
+                x509.NameAttribute(x509.oid.NameOID.COUNTRY_NAME, "UK"),
+                x509.NameAttribute(x509.oid.NameOID.STATE_OR_PROVINCE_NAME, "Cumbria"),
+                x509.NameAttribute(x509.oid.NameOID.LOCALITY_NAME, "Keswick"),
+                x509.NameAttribute(x509.oid.NameOID.ORGANIZATION_NAME, "PavInc"),
+                x509.NameAttribute(
+                    x509.oid.NameOID.COMMON_NAME, "github.com/actuallypav"
+                ),
+            ]
+        )
     )
 
     csr_builder = csr_builder.add_extension(custom_extension, critical=False)
@@ -57,6 +61,7 @@ def generate_csr(OID_content):
         )
 
     return csr.public_bytes(serialization.Encoding.PEM)
+
 
 def encrypt_aes256(data, key, iv):
     cipher = Cipher(algorithms.AES(key), modes.CBC(iv))
@@ -91,7 +96,7 @@ def get_pem(csr, api_gateway_url):
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.settimeout(0)
     try:
-        s.connect(('10.254.254.254', 1))
+        s.connect(("10.254.254.254", 1))
         local_ip = s.getsockname()[0]
     except Exception:
         local_ip = "127.0.0.1"
@@ -104,9 +109,7 @@ def get_pem(csr, api_gateway_url):
         "requestBody": base64_csr,
     }
 
-    header = {
-        "Content-Type": "application/json"
-    }
+    header = {"Content-Type": "application/json"}
 
     response = requests.post(api_gateway_url, json=body, headers=header)
 
@@ -114,7 +117,6 @@ def get_pem(csr, api_gateway_url):
         return response
     else:
         print(f"ERROR: {response.status_code}, {response.text}")
-
 
 
 def main():
@@ -135,13 +137,13 @@ def main():
 
     response = get_pem(b64_encoded_csr, api_gateway_url)
     response_json = json.loads(response.text)
-    
+
     root_ca = response_json["root_ca"]
     cert_pem = response_json["cert_pem"]
 
     print(root_ca)
     print(cert_pem)
-    
+
     with open("root_ca.pem", "w") as r:
         r.write(root_ca)
 
