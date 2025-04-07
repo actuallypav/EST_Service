@@ -5,6 +5,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.padding import PKCS7
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography import x509
 import requests
 import boto3
 import os
@@ -18,12 +19,14 @@ import base64
 
 def lambda_handler(event, context):
     try:
+        print(event["requestContext"])
         source_ip = event["requestContext"]["identity"]["sourceIp"]
-        logger.info(f"Received request from IP: {source_ip}")
+        print(f"Received request from IP: {source_ip}")
 
         kv_name = os.environ.get("KV_NAME")
         region = os.environ.get("REGION")
         root_ca_url = os.environ.get("ROOT_CA_URL")
+        oid = os.environ.get("OID")
 
         account_id = boto3.client("sts").get_caller_identity().get("Account")
 
@@ -49,8 +52,8 @@ def lambda_handler(event, context):
         logger.info("Downloading Root CA.")
         root_ca = download_root_ca(root_ca_url)
 
-        logger.info("Signing the CSR.")
-        cert_pem = sign_csr(csr)
+        logger.info("Signing the CSR and creating the Thing.")
+        cert_pem = sign_csr(csr, oid)
 
         # ensure cert_pem is in text before sending - 
         # probs not the best way but it is what it is
@@ -114,13 +117,12 @@ def verify_csr(csr):
             padding.PKCS1v15(),
             csr.signature_hash_algorithm,
         )
+        print(csr)
         print("CSR is valid")
     except Exception as e:
         print("CSR verification failed ", e)
-
         # TODO: Return error to the client - for now just quit lambda
         raise Exception("Forced Lambda exit - can't verify CSR")
-
 
 def download_root_ca(ca_url):
     response = requests.get(ca_url)
@@ -131,26 +133,17 @@ def download_root_ca(ca_url):
         # TODO: Return error to the client - for now just quit lambda
         raise Exception("Forced Lambda exit - can't verify CA")
 
+def generate_policy(permissions):
+    pass
 
-def sign_csr(csr):
-    # sign csr
-    iot = boto3.client("iot")
+def create_thing(oid, iot, cert_arn):
+    #TODO: retrieve the extension for parsing
 
-    response = iot.create_certificate_from_csr(
-        certificateSigningRequest=csr.public_bytes(
-            encoding=serialization.Encoding.PEM
-        ).decode("utf-8"),
-        setAsActive=True,
-    )
-
-    print(response)
-    print("certificate signed")
+    #TODO: split it the oid into permissions
+    permissions = ""
+    thing_policy = generate_policy(permissions)
     
-
-    cert_arn = response["certificateArn"]
-    cert_pem = response["certificatePem"]
-
-    # TODO: Retrive name/policies from OID for now just make default ones
+    #TODO: replace below with the extension contents
     thing_name = "IoTPavTest"
     policy_name = "IoTPavTestPolicy"
 
@@ -169,6 +162,7 @@ def sign_csr(csr):
         print(f"Policy '{policy_name}' exists.")
     except iot.exceptions.ResourceNotFoundException:
         print(f"Policy '{policy_name}' does not exist. Creating it now...")
+        #TODO: replace with thing_policy VVV
         policy_document = {
             "Version": "2012-10-17",
             "Statement": [
@@ -182,6 +176,25 @@ def sign_csr(csr):
     iot.attach_thing_principal(thingName=thing_name, principal=cert_arn)
 
     iot.attach_policy(policyName=policy_name, target=cert_arn)
+
+def sign_csr(oid, csr):
+    # sign csr
+    iot = boto3.client("iot")
+
+    response = iot.create_certificate_from_csr(
+        certificateSigningRequest=csr.public_bytes(
+            encoding=serialization.Encoding.PEM
+        ).decode("utf-8"),
+        setAsActive=True,
+    )
+
+    print(response)
+    print("certificate signed")
+    
+    cert_arn = response["certificateArn"]
+    cert_pem = response["certificatePem"]
+
+    create_thing(oid, iot, cert_arn)
 
     print("all good sending back")
     return cert_pem

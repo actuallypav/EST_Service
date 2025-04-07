@@ -42,7 +42,7 @@ resource "aws_iam_policy" "est_server_policy" {
           "iot:CreateThing",
           "iot:CreatePolicy",
           "iot:AttachThingPrincipal",
-          "iot:AttachPolicy",
+          "iot:AttachPolicy*",
         ]
         Resource = "arn:aws:iot:${var.region}:${data.aws_caller_identity.current.account_id}:*"
       },
@@ -133,6 +133,7 @@ resource "aws_lambda_function" "est_server" {
       KV_NAME     = var.kv_name
       REGION      = var.region
       ROOT_CA_URL = var.root_ca_url
+      OID = var.oid
     }
   }
 }
