@@ -73,12 +73,12 @@ resource "aws_iam_policy" "est_server_policy" {
 }
 
 resource "aws_iam_role_policy_attachment" "attach_role_est" {
-  role       = aws_iam_role.assume_role.name
+  role       = aws_iam_role.est_role.name
   policy_arn = aws_iam_policy.est_server_policy.arn
 }
 
-resource "aws_iam_role" "assume_role" {
-  name = "assume-role"
+resource "aws_iam_role" "est_role" {
+  name = "est-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -116,7 +116,7 @@ data "archive_file" "python_zip" {
 resource "aws_lambda_function" "est_server" {
   filename      = "payload.zip"
   function_name = var.function_name
-  role          = aws_iam_role.assume_role.arn
+  role          = aws_iam_role.est_role.arn
 
   source_code_hash = data.archive_file.python_zip.output_base64sha256
   runtime          = "python3.12"
