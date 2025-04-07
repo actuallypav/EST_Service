@@ -17,6 +17,7 @@ logger.setLevel(logging.DEBUG)
 
 import base64
 
+
 def lambda_handler(event, context):
     try:
         print(event["requestContext"])
@@ -43,7 +44,7 @@ def lambda_handler(event, context):
         csr_pem = decrypt_csr(csr_aes, account_id, region, kv_name)
         logger.debug(f"Decrypted CSR (PEM Format): {(csr_pem)}")
 
-        csr = x509.load_pem_x509_csr(csr_pem.encode('utf-8'))
+        csr = x509.load_pem_x509_csr(csr_pem.encode("utf-8"))
         logger.debug(f"CSR Structure: {csr}")
 
         verify_csr(csr)
@@ -55,30 +56,28 @@ def lambda_handler(event, context):
         logger.info("Signing the CSR and creating the Thing.")
         cert_pem = sign_csr(csr, oid)
 
-        # ensure cert_pem is in text before sending - 
+        # ensure cert_pem is in text before sending -
         # probs not the best way but it is what it is
         if isinstance(cert_pem, bytes):
-            cert_pem = cert_pem.decode('utf-8')
+            cert_pem = cert_pem.decode("utf-8")
 
         if isinstance(root_ca, bytes):
-            root_ca = root_ca.decode('utf-8')
+            root_ca = root_ca.decode("utf-8")
 
-        response_data = {
-            "root_ca": root_ca,
-            "cert_pem": cert_pem
-        }
+        response_data = {"root_ca": root_ca, "cert_pem": cert_pem}
         logger.info("Successfully signed the CSR and prepared response.")
 
         return {
             "statusCode": 200,
             "headers": {"Content-Type": "application/json"},
-            "body": json.dumps(response_data), 
+            "body": json.dumps(response_data),
         }
 
     except Exception as e:
         logger.error(f"ERROR: {str(e)}")
         logger.error("Traceback: %s", traceback.format_exc())
         return {"statusCode": 500, "body": json.dumps({"ERROR": str(e)})}
+
 
 def decrypt_csr(ciphertext, account_id, region, kv_name):
     # retrive key/iv
@@ -124,6 +123,7 @@ def verify_csr(csr):
         # TODO: Return error to the client - for now just quit lambda
         raise Exception("Forced Lambda exit - can't verify CSR")
 
+
 def download_root_ca(ca_url):
     response = requests.get(ca_url)
     if response.status_code == 200:
@@ -133,17 +133,19 @@ def download_root_ca(ca_url):
         # TODO: Return error to the client - for now just quit lambda
         raise Exception("Forced Lambda exit - can't verify CA")
 
+
 def generate_policy(permissions):
     pass
 
-def create_thing(oid, iot, cert_arn):
-    #TODO: retrieve the extension for parsing
 
-    #TODO: split it the oid into permissions
+def create_thing(oid, iot, cert_arn):
+    # TODO: retrieve the extension for parsing
+
+    # TODO: split it the oid into permissions
     permissions = ""
     thing_policy = generate_policy(permissions)
-    
-    #TODO: replace below with the extension contents
+
+    # TODO: replace below with the extension contents
     thing_name = "IoTPavTest"
     policy_name = "IoTPavTestPolicy"
 
@@ -162,7 +164,7 @@ def create_thing(oid, iot, cert_arn):
         print(f"Policy '{policy_name}' exists.")
     except iot.exceptions.ResourceNotFoundException:
         print(f"Policy '{policy_name}' does not exist. Creating it now...")
-        #TODO: replace with thing_policy VVV
+        # TODO: replace with thing_policy VVV
         policy_document = {
             "Version": "2012-10-17",
             "Statement": [
@@ -177,6 +179,7 @@ def create_thing(oid, iot, cert_arn):
 
     iot.attach_policy(policyName=policy_name, target=cert_arn)
 
+
 def sign_csr(oid, csr):
     # sign csr
     iot = boto3.client("iot")
@@ -190,7 +193,7 @@ def sign_csr(oid, csr):
 
     print(response)
     print("certificate signed")
-    
+
     cert_arn = response["certificateArn"]
     cert_pem = response["certificatePem"]
 
