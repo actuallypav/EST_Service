@@ -14,6 +14,8 @@ import traceback
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
+import base64
+
 def lambda_handler(event, context):
     try:
         source_ip = event["requestContext"]["identity"]["sourceIp"]
@@ -42,7 +44,7 @@ def lambda_handler(event, context):
         logger.debug(f"CSR Structure: {csr}")
 
         verify_csr(csr)
-        logger.info("Successfully verifyed the CSR.")
+        logger.info("Successfully verified the CSR.")
 
         logger.info("Downloading Root CA.")
         root_ca = download_root_ca(root_ca_url)
@@ -50,20 +52,30 @@ def lambda_handler(event, context):
         logger.info("Signing the CSR.")
         cert_pem = sign_csr(csr)
 
-        response_data = {"root_ca": root_ca, "cert_pem": cert_pem}
+        # ensure cert_pem is in text before sending - 
+        # probs not the best way but it is what it is
+        if isinstance(cert_pem, bytes):
+            cert_pem = cert_pem.decode('utf-8')
+
+        if isinstance(root_ca, bytes):
+            root_ca = root_ca.decode('utf-8')
+
+        response_data = {
+            "root_ca": root_ca,
+            "cert_pem": cert_pem
+        }
         logger.info("Successfully signed the CSR and prepared response.")
 
         return {
             "statusCode": 200,
             "headers": {"Content-Type": "application/json"},
-            "body": base64.b64encode(json.dumps(response_data).encode()).decode(),
+            "body": json.dumps(response_data), 
         }
 
     except Exception as e:
         logger.error(f"ERROR: {str(e)}")
         logger.error("Traceback: %s", traceback.format_exc())
         return {"statusCode": 500, "body": json.dumps({"ERROR": str(e)})}
-
 
 def decrypt_csr(ciphertext, account_id, region, kv_name):
     # retrive key/iv

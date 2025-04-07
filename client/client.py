@@ -111,15 +111,14 @@ def get_pem(csr, api_gateway_url):
     response = requests.post(api_gateway_url, json=body, headers=header)
 
     if response.status_code == 200:
-        print("Response:", response.json()) 
-        return response.json()
+        return response
     else:
         print(f"ERROR: {response.status_code}, {response.text}")
 
 
 
 def main():
-    #read the config file for this IoT "VERY IMPORTANY"
+    # read the config file for this IoT "VERY IMPORTANY"
     region, kv_name, api_gateway_url, OID_content = parse_config("config_client.json")
 
     # generate CSR
@@ -135,17 +134,19 @@ def main():
     b64_encoded_csr = base64.b64encode(encrypted_csr).decode()
 
     response = get_pem(b64_encoded_csr, api_gateway_url)
-    print(response)
+    response_json = json.loads(response.text)
     
-    # response_json = response.json()
-    # root_ca = base64.b64decode(response_json.get("root_ca", "")).decode()
-    # cert_pem = base64.b64decode(response_json.get("cert_pem", "")).decode()
+    root_ca = response_json["root_ca"]
+    cert_pem = response_json["cert_pem"]
 
-    # with open("root_ca.pem", "w") as r:
-    #     r.write(root_ca)
+    print(root_ca)
+    print(cert_pem)
+    
+    with open("root_ca.pem", "w") as r:
+        r.write(root_ca)
 
-    # with open("certificate.pem", "w") as c:
-        # c.write(cert_pem)
+    with open("certificate.pem", "w") as c:
+        c.write(cert_pem)
 
     print("Success find the certificates here!")
 
