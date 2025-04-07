@@ -39,16 +39,29 @@ resource "aws_iam_policy" "est_server_policy" {
       {
         Effect = "Allow"
         Action = [
-          "iot:DescribeThing",
           "iot:CreateThing",
-          "iot:GetPolicy",
           "iot:CreatePolicy",
           "iot:AttachThingPrincipal",
-          "iot:AttachPolicy"
+          "iot:AttachPolicy",
         ]
-        Resource = "arn:aws:iot:${var.region}:${data.aws_caller_identity.current.account_id}:thing/*"
+        Resource = "arn:aws:iot:${var.region}:${data.aws_caller_identity.current.account_id}:*"
       },
-
+      {
+        Effect = "Allow"
+        Action = [
+          "iot:GetPolicy"
+        ]
+        Resource = "arn:aws:iot:${var.region}:${data.aws_caller_identity.current.account_id}:policy/*"
+      },
+      # Allow CreateCertificate permission (HAS TO BE *)
+      {
+        Effect = "Allow"
+        Action = [
+          "iot:DescribeThing",
+          "iot:CreateCertificateFromCsr"
+        ]
+        Resource = "*"
+      },
       # Allow Lambda invocation
       {
         Effect   = "Allow"
@@ -108,6 +121,8 @@ resource "aws_lambda_function" "est_server" {
   source_code_hash = data.archive_file.python_zip.output_base64sha256
   runtime          = "python3.12"
   handler          = "server.lambda_handler"
+
+  timeout = 10
 
   depends_on = [
     aws_cloudwatch_log_group.lambda_outputs

@@ -42,8 +42,12 @@ def lambda_handler(event, context):
         logger.debug(f"CSR Structure: {csr}")
 
         verify_csr(csr)
+        logger.info("Successfully verifyed the CSR.")
 
+        logger.info("Downloading Root CA.")
         root_ca = download_root_ca(root_ca_url)
+
+        logger.info("Signing the CSR.")
         cert_pem = sign_csr(csr)
 
         response_data = {"root_ca": root_ca, "cert_pem": cert_pem}
@@ -95,7 +99,7 @@ def verify_csr(csr):
         public_key.verify(
             csr.signature,
             csr.tbs_certrequest_bytes,
-            padding.PKCS1v15,
+            padding.PKCS1v15(),
             csr.signature_hash_algorithm,
         )
         print("CSR is valid")
@@ -113,7 +117,7 @@ def download_root_ca(ca_url):
     else:
         print("Error retriving Amazon Root CA")
         # TODO: Return error to the client - for now just quit lambda
-        raise Exception("Forced Lambda exit - can't verify CSR")
+        raise Exception("Forced Lambda exit - can't verify CA")
 
 
 def sign_csr(csr):
@@ -123,17 +127,22 @@ def sign_csr(csr):
     response = iot.create_certificate_from_csr(
         certificateSigningRequest=csr.public_bytes(
             encoding=serialization.Encoding.PEM
-        ),
+        ).decode("utf-8"),
         setAsActive=True,
     )
 
-    cert_arn = response["certificateARN"]
+    print(response)
+    print("certificate signed")
+    
+
+    cert_arn = response["certificateArn"]
     cert_pem = response["certificatePem"]
 
     # TODO: Retrive name/policies from OID for now just make default ones
     thing_name = "IoTPavTest"
     policy_name = "IoTPavTestPolicy"
 
+    print("creating the thing")
     # Verify the above exists - if not create
     try:
         iot.describe_thing(thingName=thing_name)
@@ -142,6 +151,7 @@ def sign_csr(csr):
         print(f"Thing '{thing_name}' does not exist. Creating it now...")
         iot.create_thing(thingName=thing_name)
 
+    print("creating the policy")
     try:
         iot.get_policy(policyName=policy_name)
         print(f"Policy '{policy_name}' exists.")
@@ -161,4 +171,5 @@ def sign_csr(csr):
 
     iot.attach_policy(policyName=policy_name, target=cert_arn)
 
+    print("all good sending back")
     return cert_pem
