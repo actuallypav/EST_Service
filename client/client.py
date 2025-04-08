@@ -1,5 +1,3 @@
-import sys
-import time
 import socket
 import base64
 import cryptography.hazmat.primitives.serialization as serialization
