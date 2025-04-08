@@ -39,16 +39,29 @@ resource "aws_iam_policy" "est_server_policy" {
       {
         Effect = "Allow"
         Action = [
-          "iot:DescribeThing",
           "iot:CreateThing",
-          "iot:GetPolicy",
           "iot:CreatePolicy",
           "iot:AttachThingPrincipal",
-          "iot:AttachPolicy"
+          "iot:AttachPolicy*",
         ]
-        Resource = "arn:aws:iot:${var.region}:${data.aws_caller_identity.current.account_id}:thing/*"
+        Resource = "arn:aws:iot:${var.region}:${data.aws_caller_identity.current.account_id}:*"
       },
-
+      {
+        Effect = "Allow"
+        Action = [
+          "iot:GetPolicy"
+        ]
+        Resource = "arn:aws:iot:${var.region}:${data.aws_caller_identity.current.account_id}:policy/*"
+      },
+      # Allow CreateCertificate permission (HAS TO BE *)
+      {
+        Effect = "Allow"
+        Action = [
+          "iot:DescribeThing",
+          "iot:CreateCertificateFromCsr"
+        ]
+        Resource = "*"
+      },
       # Allow Lambda invocation
       {
         Effect   = "Allow"
@@ -60,12 +73,12 @@ resource "aws_iam_policy" "est_server_policy" {
 }
 
 resource "aws_iam_role_policy_attachment" "attach_role_est" {
-  role       = aws_iam_role.assume_role.name
+  role       = aws_iam_role.est_role.name
   policy_arn = aws_iam_policy.est_server_policy.arn
 }
 
-resource "aws_iam_role" "assume_role" {
-  name = "assume-role"
+resource "aws_iam_role" "est_role" {
+  name = "est-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -83,9 +96,14 @@ resource "aws_iam_role" "assume_role" {
 
 resource "null_resource" "install_dependencies" {
   provisioner "local-exec" {
-    command = "pip install -r ../src/requirements.txt -t ..src/"
+    command = "pip install -r ../src/requirements.txt -t ../src"
+  }
+
+  triggers = {
+    always_run = "${timestamp()}"
   }
 }
+
 
 data "archive_file" "python_zip" {
   type        = "zip"
@@ -98,11 +116,13 @@ data "archive_file" "python_zip" {
 resource "aws_lambda_function" "est_server" {
   filename      = "payload.zip"
   function_name = var.function_name
-  role          = aws_iam_role.assume_role.arn
+  role          = aws_iam_role.est_role.arn
 
   source_code_hash = data.archive_file.python_zip.output_base64sha256
   runtime          = "python3.12"
   handler          = "server.lambda_handler"
+
+  timeout = 10
 
   depends_on = [
     aws_cloudwatch_log_group.lambda_outputs
@@ -113,6 +133,7 @@ resource "aws_lambda_function" "est_server" {
       KV_NAME     = var.kv_name
       REGION      = var.region
       ROOT_CA_URL = var.root_ca_url
+      OID         = var.oid
     }
   }
 }

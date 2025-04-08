@@ -1,8 +1,8 @@
 # Create an ACM Cert for HTTPS on API GW
 resource "aws_acm_certificate" "api_est_cert" {
-  domain_name       = var.est_domain
+  domain_name               = var.est_domain
   subject_alternative_names = ["api.${var.est_domain}"]
-  validation_method = "DNS"
+  validation_method         = "DNS"
 
   lifecycle {
     create_before_destroy = true
