@@ -11,6 +11,7 @@ import boto3
 import os
 import logging
 import traceback
+import sys
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
@@ -54,7 +55,7 @@ def lambda_handler(event, context):
         root_ca = download_root_ca(root_ca_url)
 
         logger.info("Signing the CSR and creating the Thing.")
-        cert_pem = sign_csr(csr, oid)
+        cert_pem = sign_csr(oid, csr, region)
 
         # ensure cert_pem is in text before sending -
         # probs not the best way but it is what it is
@@ -116,7 +117,7 @@ def verify_csr(csr):
             padding.PKCS1v15(),
             csr.signature_hash_algorithm,
         )
-        print(csr)
+
         print("CSR is valid")
     except Exception as e:
         print("CSR verification failed ", e)
@@ -134,20 +135,57 @@ def download_root_ca(ca_url):
         raise Exception("Forced Lambda exit - can't verify CA")
 
 
-def generate_policy(permissions):
-    pass
+def generate_policy(permissions, region):
+    policies = permissions["Policies"]
+    topics = permissions["Topics"]
+    account_id = boto3.client("sts").get_caller_identity().get("Account")
+
+    policy_doc = {"Version": "2012-10-17", "Statement": []}
+
+    for action, allowed in policies.items():
+        if allowed is None:  # skip policy if it's null
+            continue
+
+        # gather all topics
+        resources = []
+        for topic_group, topic_names in topics.items():
+            if action == topic_group:
+                for topic_name in topic_names.values():
+                    # format the resource right
+                    resource_arn = f"arn:aws:iot:{region}:{account_id}:{topic_name}"
+                    resources.append(resource_arn)
+
+        if allowed:
+            # create a single Allow statement for the action if True
+            statement = {
+                "Effect": "Allow",
+                "Action": f"iot:{action}",
+                "Resource": resources,
+            }
+            policy_doc["Statement"].append(statement)
+        else:
+            # create a single Deny statement for the action if False
+            statement = {
+                "Effect": "Deny",
+                "Action": f"iot:{action}",
+                "Resource": resources,
+            }
+            policy_doc["Statement"].append(statement)
+
+    return policy_doc
 
 
-def create_thing(oid, iot, cert_arn):
-    # TODO: retrieve the extension for parsing
+def create_thing(_oid, iot, cert_arn, csr, region):
+    for extension in csr.extensions:
+        if extension.oid == x509.ObjectIdentifier(_oid):
 
-    # TODO: split it the oid into permissions
-    permissions = ""
-    thing_policy = generate_policy(permissions)
+            extension_value = extension.value.value
+            iot_details = json.loads(extension_value.decode())
 
-    # TODO: replace below with the extension contents
-    thing_name = "IoTPavTest"
-    policy_name = "IoTPavTestPolicy"
+    thing_policy = generate_policy(iot_details, region)
+
+    thing_name = iot_details["ThingName"]
+    policy_name = thing_name + "Policy"
 
     print("creating the thing")
     # Verify the above exists - if not create
@@ -164,26 +202,20 @@ def create_thing(oid, iot, cert_arn):
         print(f"Policy '{policy_name}' exists.")
     except iot.exceptions.ResourceNotFoundException:
         print(f"Policy '{policy_name}' does not exist. Creating it now...")
-        # TODO: replace with thing_policy VVV
-        policy_document = {
-            "Version": "2012-10-17",
-            "Statement": [
-                {"Effect": "Allow", "Action": "iot:Connect", "Resource": "*"}
-            ],
-        }
-        iot.create_policy(
-            policyName=policy_name, policyDocument=json.dumps(policy_document)
-        )
+
+        policy_document = json.dumps(thing_policy)
+
+        iot.create_policy(policyName=policy_name, policyDocument=policy_document)
 
     iot.attach_thing_principal(thingName=thing_name, principal=cert_arn)
 
     iot.attach_policy(policyName=policy_name, target=cert_arn)
 
 
-def sign_csr(oid, csr):
+def sign_csr(oid, csr, region):
     # sign csr
     iot = boto3.client("iot")
-
+    print(csr)
     response = iot.create_certificate_from_csr(
         certificateSigningRequest=csr.public_bytes(
             encoding=serialization.Encoding.PEM
@@ -197,7 +229,7 @@ def sign_csr(oid, csr):
     cert_arn = response["certificateArn"]
     cert_pem = response["certificatePem"]
 
-    create_thing(oid, iot, cert_arn)
+    create_thing(oid, iot, cert_arn, csr, region)
 
     print("all good sending back")
     return cert_pem
