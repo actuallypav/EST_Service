@@ -11,7 +11,6 @@ import boto3
 import os
 import logging
 import traceback
-import sys
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
