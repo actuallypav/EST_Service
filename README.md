@@ -27,4 +27,4 @@ EST_Service is a Python-based implementation of the Enrollment over Secure Trans
 2. Run `client.py` on IoT devices to securely request certificates.
 
 <img src="/img/EST-certificate-enrollement.png" alt="*Source: Sectigo*">
-<sup><sub>Source: Sectigo</sub></sup>
+
