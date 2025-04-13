@@ -1,4 +1,4 @@
-# Overview
+## Overview
 `EST_Service` is a lightweirght Python-based implementation of the Enrollment over Secure Transport (EST) protocol, designed for cost-effective and automated IoT device enrollment in AWS environments. It uses an API Gateway with HTTPS, and an AES Key Pair for secure, scalable, and efficient device provisioning service.
 ### How This EST Implementation Works
 - **Cost-Effective HTTPS**: Secure transport while minimizing TLS certificate expenses.
