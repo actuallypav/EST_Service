@@ -16,6 +16,7 @@
 - **Client (client.py)**: Runs on IoT devices to securely communicate with the EST server.
 - **AWS IoT Core**: Manages device registration and certificates.
 ### `client_config.json`
+<img src="https://raw.githubusercontent.com/actuallypav/EST_Service/refs/heads/main/img/EST-certificate-enrollement.png" alt="Smiley Picture" width="1000"/>
 The `client_config.json` file configures the client (IoT device) for EST communication. Here's an example:
 ```json
 {
