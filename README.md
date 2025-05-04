@@ -67,5 +67,5 @@ This configuration is sent with the CSR to the EST server, which creates and con
 4. Run `client.py` on IoT devices to request certificates and register with AWS IoT Core.
 ### Future Updates
 1. Handle multiple device enrollment, by expanding the client_config.json functionality
-2. Addition of mTLS of AES
+2. Addition of mTLS over AES encryption
 3. Automatic certificate rotation (not a priority as this is difficult on a ESP device)
