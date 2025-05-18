@@ -22,40 +22,45 @@
 The `client_config.json` file configures the client (IoT device) for EST communication. Here's an example:
 ```json
 {
-    "ESTDetails": {
+  "Devices": [
+    {
+      "ESTDetails": {
         "ESTAPIURL": "https://your-est-server-url",
         "Region": "eu-west-2",
         "KV_Name": "AES_kv"
-    },
-    "IoTDetails": {
+      },
+      "IoTDetails": {
         "ThingName": "Megatron",
         "Policies": {
-            "Connect": true,
-            "Publish": null,
-            "Receive": false,
-            "Subscribe": false
+          "Connect": true,
+          "Publish": null,
+          "Receive": false,
+          "Subscribe": false
         },
         "Topics": {
-            "Connect": {
-                "Name1": "client/Connect1",
-                "Name2": "client/Connect2"
-            },
-            "Publish": {
-                "Name1": "topic/Publish1",
-                "Name2": "topic/Publish2"
-            },
-            "Receive": {
-                "Name1": "topic/Receive1",
-                "Name2": "topic/Receive2"
-            },
-            "Subscribe": {
-                "Name1": "topic/Subscribe1",
-                "Name2": "topic/Subscribe2"
-            }
+          "Connect": {
+            "Name1": "client/Connect1",
+            "Name2": "client/Connect2"
+          },
+          "Publish": {
+            "Name1": "topic/Publish1",
+            "Name2": "topic/Publish2"
+          },
+          "Receive": {
+            "Name1": "topic/Receive1",
+            "Name2": "topic/Receive2"
+          },
+          "Subscribe": {
+            "Name1": "topic/Subscribe1",
+            "Name2": "topic/Subscribe2"
+          }
         }
+      }
     }
+  ]
 }
 ```
+- **Devices** is a list, this allows the client to call the EST Service API multiple times to enroll multiple devices at a time - and save each unique key in it's own directory/
 - **Topic Prefixes**: For the `Connect` policy, topics must be prefixed with `client/` (e.g., `client/Connect1`). Other policies (`Publish`, `Receive`, `Subscribe`) should use the `topic/` prefix.
 - **IoTDetails**: Contains device-specific information, including policies and topics to interact with.
 - **Policies**: `true` = Allow, `False` = Deny, `null` = do not include in policy.
