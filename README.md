@@ -60,7 +60,7 @@ The `client_config.json` file configures the client (IoT device) for EST communi
   ]
 }
 ```
-- **Devices** is a list, this allows the client to call the EST Service API multiple times to enroll multiple devices at a time - and save each unique key in it's own directory/
+- **Devices** is a list, this allows the client to call the EST Service API multiple times to enroll multiple devices at a time - and save each unique key in it's own directory.
 - **Topic Prefixes**: For the `Connect` policy, topics must be prefixed with `client/` (e.g., `client/Connect1`). Other policies (`Publish`, `Receive`, `Subscribe`) should use the `topic/` prefix.
 - **IoTDetails**: Contains device-specific information, including policies and topics to interact with.
 - **Policies**: `true` = Allow, `False` = Deny, `null` = do not include in policy.
