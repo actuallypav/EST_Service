@@ -11,15 +11,19 @@ import boto3
 import json
 import requests
 
-
-def parse_config(file_path):
+def retrieve_config(file_path):
     with open(file_path, "r") as file:
         data = json.load(file)
-    est_api_url = data["ESTDetails"]["ESTAPIURL"]
-    region = data["ESTDetails"]["Region"]
+    device_count = len(data["Devices"])
+    api_gw_url = data["ESTDetails"]["ESTAPIURL"]
     KV_name = data["ESTDetails"]["KV_Name"]
-    OID_content = data["IoTDetails"]
-    return region, KV_name, est_api_url, OID_content
+    region = data["ESTDetails"]["Refion"]
+    return device_count, data, region, KV_name, api_gw_url
+
+def parse_devices(i, data):
+    device = data["Devices"][i-1]
+    OID_content = device["IoTDetails"]
+    return OID_content
 
 
 def generate_csr(OID_content):
@@ -118,37 +122,41 @@ def get_pem(csr, api_gateway_url):
 
 
 def main():
-    # read the config file for this IoT "VERY IMPORTANY"
-    region, kv_name, api_gateway_url, OID_content = parse_config("config_client.json")
-
-    # generate CSR
-    csr_data = generate_csr(OID_content)
+    #retrieve important info on the EST/Device count
+    device_count, data, region, kv_name, api_gw_url = retrieve_config("config_client.json")
 
     # recover key/iv from secrets
     key, iv = retrieve_kv(region, kv_name)
 
-    # encrypt CSR
-    encrypted_csr = encrypt_aes256(csr_data, key, iv)
+    for i in range(device_count):
+        # read the config file for this IoT "VERY IMPORTANY"
+        OID_content = parse_devices(i, data)
 
-    # encode with Base64
-    b64_encoded_csr = base64.b64encode(encrypted_csr).decode()
+        # generate CSR
+        csr_data = generate_csr(OID_content)
 
-    response = get_pem(b64_encoded_csr, api_gateway_url)
-    response_json = json.loads(response.text)
+        # encrypt CSR
+        encrypted_csr = encrypt_aes256(csr_data, key, iv)
 
-    root_ca = response_json["root_ca"]
-    cert_pem = response_json["cert_pem"]
+        # encode with Base64
+        b64_encoded_csr = base64.b64encode(encrypted_csr).decode()
 
-    print(root_ca)
-    print(cert_pem)
+        response = get_pem(b64_encoded_csr, api_gw_url)
+        response_json = json.loads(response.text)
 
-    with open("root_ca.pem", "w") as r:
-        r.write(root_ca)
+        root_ca = response_json["root_ca"]
+        cert_pem = response_json["cert_pem"]
 
-    with open("certificate.pem", "w") as c:
-        c.write(cert_pem)
+        print(root_ca)
+        print(cert_pem)
 
-    print("Success find the certificates here!")
+        with open("root_ca.pem", "w") as r:
+            r.write(root_ca)
+
+        with open("certificate.pem", "w") as c:
+            c.write(cert_pem)
+
+    print("Success find the certificates in the 'certs' folder!")
 
 
 if __name__ == "__main__":
