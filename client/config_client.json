@@ -1,35 +1,155 @@
 {
     "ESTDetails": {
-        "ESTAPIURL": "https://api.domain.com",
-        "Region": "eu-west-2",
-        "KV_Name": "AES_kv"
+      "ESTAPIURL": "https://api.domain.com",
+      "Region": "eu-west-2",
+      "KV_Name": "AES_kv"
     },
-    "IoTDetails": {
-        "ThingName": "Megatron",
-        "Policies": {
+    "Devices": [
+      {
+        "IoTDetails": {
+          "ThingName": "Megatron",
+          "Policies": {
             "Connect": true,
             "Publish": null,
             "Receive": false,
             "Subscribe": false
-        },
-        "Topics": {
+          },
+          "Topics": {
             "Connect": {
-                "Name1": "client/Connect1",
-                "Name2": "client/Connect2"
+              "Name1": "client/Connect1",
+              "Name2": "client/Connect2"
             },
             "Publish": {
-                "Name1": "topic/Publish1",
-                "Name2": "topic/Publish2"
+              "Name1": "topic/Publish1",
+              "Name2": "topic/Publish2"
             },
             "Receive": {
-                "Name1": "topic/Receive1",
-                "Name2": "topic/Receive2"
+              "Name1": "topic/Receive1",
+              "Name2": "topic/Receive2"
             },
             "Subscribe": {
-                "Name1": "topic/Subscribe1",
-                "Name2": "topic/Subscribe2"
+              "Name1": "topic/Subscribe1",
+              "Name2": "topic/Subscribe2"
             }
+          }
         }
-    }
-}
-
+      },
+      {
+        "IoTDetails": {
+          "ThingName": "Starscream",
+          "Policies": {
+            "Connect": true,
+            "Publish": null,
+            "Receive": false,
+            "Subscribe": false
+          },
+          "Topics": {
+            "Connect": {
+              "Name1": "client/Connect1",
+              "Name2": "client/Connect2"
+            },
+            "Publish": {
+              "Name1": "topic/Publish1",
+              "Name2": "topic/Publish2"
+            },
+            "Receive": {
+              "Name1": "topic/Receive1",
+              "Name2": "topic/Receive2"
+            },
+            "Subscribe": {
+              "Name1": "topic/Subscribe1",
+              "Name2": "topic/Subscribe2"
+            }
+          }
+        }
+      },
+      {
+        "IoTDetails": {
+          "ThingName": "Shockwave",
+          "Policies": {
+            "Connect": true,
+            "Publish": null,
+            "Receive": false,
+            "Subscribe": false
+          },
+          "Topics": {
+            "Connect": {
+              "Name1": "client/Connect1",
+              "Name2": "client/Connect2"
+            },
+            "Publish": {
+              "Name1": "topic/Publish1",
+              "Name2": "topic/Publish2"
+            },
+            "Receive": {
+              "Name1": "topic/Receive1",
+              "Name2": "topic/Receive2"
+            },
+            "Subscribe": {
+              "Name1": "topic/Subscribe1",
+              "Name2": "topic/Subscribe2"
+            }
+          }
+        }
+      },
+      {
+        "IoTDetails": {
+          "ThingName": "Devastator",
+          "Policies": {
+            "Connect": true,
+            "Publish": null,
+            "Receive": false,
+            "Subscribe": false
+          },
+          "Topics": {
+            "Connect": {
+              "Name1": "client/Connect1",
+              "Name2": "client/Connect2"
+            },
+            "Publish": {
+              "Name1": "topic/Publish1",
+              "Name2": "topic/Publish2"
+            },
+            "Receive": {
+              "Name1": "topic/Receive1",
+              "Name2": "topic/Receive2"
+            },
+            "Subscribe": {
+              "Name1": "topic/Subscribe1",
+              "Name2": "topic/Subscribe2"
+            }
+          }
+        }
+      },
+      {
+        "IoTDetails": {
+          "ThingName": "Scorponok",
+          "Policies": {
+            "Connect": true,
+            "Publish": null,
+            "Receive": false,
+            "Subscribe": false
+          },
+          "Topics": {
+            "Connect": {
+              "Name1": "client/Connect1",
+              "Name2": "client/Connect2"
+            },
+            "Publish": {
+              "Name1": "topic/Publish1",
+              "Name2": "topic/Publish2"
+            },
+            "Receive": {
+              "Name1": "topic/Receive1",
+              "Name2": "topic/Receive2"
+            },
+            "Subscribe": {
+              "Name1": "topic/Subscribe1",
+              "Name2": "topic/Subscribe2"
+            }
+          }
+        }
+      }
+    ]
+  }
+  
