@@ -1,5 +1,5 @@
-import socket
 import base64
+import os
 import cryptography.hazmat.primitives.serialization as serialization
 import cryptography.hazmat.primitives.hashes as hashes
 import cryptography.hazmat.primitives.asymmetric.rsa as rsa
@@ -17,11 +17,11 @@ def retrieve_config(file_path):
     device_count = len(data["Devices"])
     api_gw_url = data["ESTDetails"]["ESTAPIURL"]
     KV_name = data["ESTDetails"]["KV_Name"]
-    region = data["ESTDetails"]["Refion"]
+    region = data["ESTDetails"]["Region"]
     return device_count, data, region, KV_name, api_gw_url
 
 def parse_devices(i, data):
-    device = data["Devices"][i-1]
+    device = data["Devices"][i]
     OID_content = device["IoTDetails"]
     return OID_content
 
@@ -95,16 +95,6 @@ def retrieve_kv(region, kv_name):
 
 
 def get_pem(csr, api_gateway_url):
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.settimeout(0)
-    try:
-        s.connect(("10.254.254.254", 1))
-        local_ip = s.getsockname()[0]
-    except Exception:
-        local_ip = "127.0.0.1"
-    finally:
-        s.close()
-
     base64_csr = base64.b64encode(csr.encode()).decode()
 
     body = {
@@ -150,14 +140,20 @@ def main():
         print(root_ca)
         print(cert_pem)
 
-        with open("root_ca.pem", "w") as r:
+        thing_name = OID_content["ThingName"]
+        os.makedirs(f"certs/{thing_name}", exist_ok=True)
+
+        with open(f"certs/{thing_name}/root_ca.pem", "w") as r:
             r.write(root_ca)
 
-        with open("certificate.pem", "w") as c:
+        with open(f"certs/{thing_name}/certificate.pem", "w") as c:
             c.write(cert_pem)
 
-    print("Success find the certificates in the 'certs' folder!")
+        with open(f"certs/{thing_name}/private_key.pem", "wb") as k:
+            with open("private_key.pem", "rb") as temp_key:
+                k.write(temp_key.read())
 
+    print(f"Success find the certificates in the certs folder!")
 
 if __name__ == "__main__":
     main()
