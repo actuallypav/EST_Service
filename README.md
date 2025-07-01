@@ -22,41 +22,67 @@
 The `client_config.json` file configures the client (IoT device) for EST communication. Here's an example:
 ```json
 {
+  "ESTDetails": {
+    "ESTAPIURL": "https://your-api-url.example.com",
+    "Region": "your-aws-region",
+    "KV_Name": "your-secret-key-name"
+  },
   "Devices": [
     {
-      "ESTDetails": {
-        "ESTAPIURL": "https://your-est-server-url",
-        "Region": "eu-west-2",
-        "KV_Name": "AES_kv"
-      },
       "IoTDetails": {
-        "ThingName": "Megatron",
+        "ThingName": "DeviceAlpha",
         "Policies": {
           "Connect": true,
-          "Publish": null,
-          "Receive": false,
-          "Subscribe": false
+          "Publish": true,
+          "Receive": null,
+          "Subscribe": null
         },
         "Topics": {
           "Connect": {
-            "Name1": "client/Connect1",
-            "Name2": "client/Connect2"
+            "Name1": "connect/topic/*"
           },
           "Publish": {
-            "Name1": "topic/Publish1",
-            "Name2": "topic/Publish2"
+            "Name1": "publish/topic1"
           },
           "Receive": {
-            "Name1": "topic/Receive1",
-            "Name2": "topic/Receive2"
+            "Name1": "receive/topic1",
+            "Name2": "receive/topic2"
           },
           "Subscribe": {
-            "Name1": "topic/Subscribe1",
-            "Name2": "topic/Subscribe2"
+            "Name1": "subscribe/topic1",
+            "Name2": "subscribe/topic2"
+          }
+        }
+      }
+    },
+    {
+      "IoTDetails": {
+        "ThingName": "DeviceBeta",
+        "Policies": {
+          "Connect": true,
+          "Publish": true,
+          "Receive": null,
+          "Subscribe": null
+        },
+        "Topics": {
+          "Connect": {
+            "Name1": "connect/topic/*"
+          },
+          "Publish": {
+            "Name1": "publish/topic1"
+          },
+          "Receive": {
+            "Name1": "receive/topic1",
+            "Name2": "receive/topic2"
+          },
+          "Subscribe": {
+            "Name1": "subscribe/topic1",
+            "Name2": "subscribe/topic2"
           }
         }
       }
     }
+    // Add more devices as needed
   ]
 }
 ```
