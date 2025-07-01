@@ -6,14 +6,14 @@
 - **API Gateway**: Provides a scalable, managed entry point for EST requests.
 - **Automated Certificate Provisioning**: Devices securely request and receive certificates automatically.
 ### Why Use This Over a GUI?
-- **Cheaper & Efficient**: Cost-efficient with high security.
+- **Cheaper & Efficient**: Cost-efficient with good security.
 - **Fully Automated**: No manual device enrollment.
 - **Scales Easily**: Handles large numbers of devices in AWS.
 - **Lightweight & Headless**: CLI-based, ideal for embedded IoT devices.
 ### Components & Deployment
 - **Terraform**: Required for infrastructure setup.
 - **Server (API Gateway + Lambda)**: Manages device enrollment securely over HTTPS.
-- **Client (client.py)**: Runs on IoT devices to securely communicate with the EST server.
+- **Client (client.py)**: Runs on IoT devices/locally to securely communicate with the EST server.
 - **AWS IoT Core**: Manages device registration and certificates.
 
 <img src="https://raw.githubusercontent.com/actuallypav/EST_Service/refs/heads/main/img/EST-certificate-enrollement.png" alt="Smiley Picture" width="1000"/>
@@ -97,6 +97,6 @@ This configuration is sent with the CSR to the EST server, which creates and con
 3. Update `client_config.json` with your device details.
 4. Run `client.py` on IoT devices to request certificates and register with AWS IoT Core.
 ### Future Updates
-1. [✓] Handle multiple device enrollment, by expanding the client_config.json functionality
-3. [✓] Addition of mTLS over AES encryption
-4. [✓] Automatic certificate rotation
+1. Handle multiple device enrollment, by expanding the client_config.json functionality [✓]
+3. Addition of mTLS over AES encryption
+4. Automatic certificate rotation
