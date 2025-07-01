@@ -87,14 +87,14 @@ The `client_config.json` file configures the client (IoT device) for EST communi
 }
 ```
 - **Devices** is a list, this allows the client to call the EST Service API multiple times to enroll multiple devices at a time - and save each unique key in it's own directory.
-- **Topic Prefixes**: For the `Connect` policy, topics must be prefixed with `client/` (e.g., `client/Connect1`). Other policies (`Publish`, `Receive`, `Subscribe`) should use the `topic/` prefix.
 - **IoTDetails**: Contains device-specific information, including policies and topics to interact with.
+- **Topics**: For the `Connect` policy, topics must be prefixed with `client/` (e.g., `client/Connect1`). Other policies (`Publish`, `Receive`, `Subscribe`) sgould use their appropriate schema.
 - **Policies**: `true` = Allow, `False` = Deny, `null` = do not include in policy.
 This configuration is sent with the CSR to the EST server, which creates and configures the IoT device in AWS IoT Core.
 ### Usage
 1. Create a `terraform.tfvars` with the values used in `variables.tf`
 2. Deploy AWS resources using Terraform.
-3. Update `client_config.json` with your device details.
+3. Update `client_config.json` with the details of your device(s).
 4. Run `client.py` on IoT devices to request certificates and register with AWS IoT Core.
 ### Future Updates
 1. Handle multiple device enrollment, by expanding the client_config.json functionality [✓]
