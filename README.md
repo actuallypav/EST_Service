@@ -1,102 +1,24 @@
-## Overview
-`EST_Service` is a lightweirght Python-based implementation of the Enrollment over Secure Transport (EST) protocol, designed for cost-effective and automated IoT device enrollment in AWS environments. It uses an API Gateway with HTTPS, and an AES Key Pair for secure, scalable, and efficient device provisioning service.
-### How This EST Implementation Works
-- **Cost-Effective HTTPS**: Secure transport while minimizing TLS certificate expenses.
-- **AWS Lambda Deployment**: Automates the enrollment of IoT devices in AWS IoT Core.
-- **API Gateway**: Provides a scalable, managed entry point for EST requests.
-- **Automated Certificate Provisioning**: Devices securely request and receive certificates automatically.
-### Why Use This Over a GUI?
-- **Cheaper & Efficient**: Cost-efficient with good security.
-- **Fully Automated**: No manual device enrollment.
-- **Scales Easily**: Handles large numbers of devices in AWS.
-- **Lightweight & Headless**: CLI-based, ideal for embedded IoT devices.
-### Components & Deployment
-- **Terraform**: Required for infrastructure setup.
-- **Server (API Gateway + Lambda)**: Manages device enrollment securely over HTTPS.
-- **Client (client.py)**: Runs on IoT devices/locally to securely communicate with the EST server.
-- **AWS IoT Core**: Manages device registration and certificates.
+## EST Service Architecture for Internet of Things (IoT) Device Enrolment on AWS
+
+### Standards-Based Device Enrolment
+EST (Enrolment over Secure Transport) provides a standards-based way to issue X.509 certificates to IoT devices. In this architecture, EST removes the need for pre-shared keys or manual certificate distribution by letting each device generate its own keys, submit a certificate signing request (CSR), and receive a signed certificate over TLS. This gives every device a unique, provable identity and enables secure enrollment at scale. It also supports fine-grained Identity and Access Management (IAM) at the device level, and full auditability through logging - all of which are essential in regulated environments.
 
 <img src="https://raw.githubusercontent.com/actuallypav/EST_Service/refs/heads/main/EST-certificate-enrollment.png" alt="EST Service Diagram" width="1000"/>
 
-### `client_config.json`
-The `client_config.json` file configures the client (IoT device) for EST communication. Here's an example:
-```json
-{
-  "ESTDetails": {
-    "ESTAPIURL": "https://your-api-url.example.com",
-    "Region": "your-aws-region",
-    "KV_Name": "your-secret-key-name"
-  },
-  "Devices": [
-    {
-      "IoTDetails": {
-        "ThingName": "DeviceAlpha",
-        "Policies": {
-          "Connect": true,
-          "Publish": true,
-          "Receive": null,
-          "Subscribe": null
-        },
-        "Topics": {
-          "Connect": {
-            "Name1": "connect/topic/*"
-          },
-          "Publish": {
-            "Name1": "publish/topic1"
-          },
-          "Receive": {
-            "Name1": "receive/topic1",
-            "Name2": "receive/topic2"
-          },
-          "Subscribe": {
-            "Name1": "subscribe/topic1",
-            "Name2": "subscribe/topic2"
-          }
-        }
-      }
-    },
-    {
-      "IoTDetails": {
-        "ThingName": "DeviceBeta",
-        "Policies": {
-          "Connect": true,
-          "Publish": true,
-          "Receive": null,
-          "Subscribe": null
-        },
-        "Topics": {
-          "Connect": {
-            "Name1": "connect/topic/*"
-          },
-          "Publish": {
-            "Name1": "publish/topic1"
-          },
-          "Receive": {
-            "Name1": "receive/topic1",
-            "Name2": "receive/topic2"
-          },
-          "Subscribe": {
-            "Name1": "subscribe/topic1",
-            "Name2": "subscribe/topic2"
-          }
-        }
-      }
-    }
-    // Add more devices as needed
-  ]
-}
-```
-- **Devices** is a list, this allows the client to call the EST Service API multiple times to enroll multiple devices at a time - and save each unique key in it's own directory.
-- **IoTDetails**: Contains device-specific information, including policies and topics to interact with.
-- **Topics**: For the `Connect` policy, topics must be prefixed with `client/` (e.g., `client/Connect1`). Other policies (`Publish`, `Receive`, `Subscribe`) sgould use their appropriate schema.
-- **Policies**: `true` = Allow, `False` = Deny, `null` = do not include in policy.
-This configuration is sent with the CSR to the EST server, which creates and configures the IoT device in AWS IoT Core.
-### Usage
-1. Create a `terraform.tfvars` with the values used in `variables.tf`
-2. Deploy AWS resources using Terraform.
-3. Update `client_config.json` with the details of your device(s).
-4. Run `client.py` on IoT devices to request certificates and register with AWS IoT Core.
-### Future Updates
-1. Handle multiple device enrollment, by expanding the client_config.json functionality [✓]
-3. Addition of mTLS over AES encryption
-4. Automatic certificate rotation
+###	Implementation with AWS
+In this implementation, AWS services were used to provide secure, automated certificate enrollment for IoT devices. 
+- Each device generates its own key pair locally and prepares a configuration file that defines the device name and IAM permissions. 
+- This configuration is wrapped in an Object Identifier (OID) and used to create a CSR, encrypted with AES.
+- The encrypted CSR is sent to AWS through an API Gateway, which invokes a Lambda function. 
+- Lambda retrieves the AES key from the Secrets Manager, decodes the CSR, signs it and registers the device in AWS IoT Core with the appropriate certificate and permissions.
+- All activity is recorded in CloudWatch, ensuring that certificate requests, approvals, and device registrations are fully auditable.
+
+### Enrolment Flow
+The enrolment process can be broken into six steps:
+1. The IoT Thing generates its own key pair and a configuration file with its identity and permissions.
+2. The Thing creates a CSR, encrypts it with AES, and sends it to the enrolment service via an API Gateway.
+3. The enrolment service retrieves the AES Key, decrypts the CS, and validates the request.
+4. The CSR is signed by the Certificate Authority, producing an IoT Certificate.
+5. The IoT Config file, along with the signed certificate, is used for the creation of the IoT Thing.
+6. The signed certificate, along with the IoT CA certificate, is returned to the Thing.
+7. All activity is logged for auditing.
